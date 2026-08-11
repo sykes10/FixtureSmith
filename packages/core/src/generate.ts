@@ -1,4 +1,8 @@
-import { InvalidSchemaConstraintError, type PathSegment } from "./errors.js"
+import {
+  InvalidFixtureOptionsError,
+  InvalidSchemaConstraintError,
+  type PathSegment,
+} from "./errors.js"
 import type { DateNode, GenerationNode, NumberNode, StringNode } from "./ir.js"
 import {
   NO_OVERRIDE,
@@ -27,10 +31,40 @@ export function generate(
 ): unknown {
   const rootSeed = resolveRootSeed(options.seed)
   const index = options.index ?? 0
-  const override =
-    Object.hasOwn(options, "overrides") && options.overrides !== undefined
-      ? options.overrides
-      : NO_OVERRIDE
+  return generateRoot(node, options, rootSeed, index)
+}
+
+export function generateMany(
+  node: GenerationNode,
+  count: number,
+  options: GenerateOptions,
+): unknown[] {
+  assertValidFixtureCount(count)
+  if (count === 0) return []
+
+  const rootSeed = resolveRootSeed(options.seed)
+  return Array.from({ length: count }, (_, index) =>
+    generateRoot(node, options, rootSeed, index),
+  )
+}
+
+export function assertValidFixtureCount(count: number): void {
+  if (!Number.isSafeInteger(count) || count < 0) {
+    throw new InvalidFixtureOptionsError(
+      "Fixture count must be a non-negative safe integer.",
+    )
+  }
+}
+
+function generateRoot(
+  node: GenerationNode,
+  options: GenerateOptions,
+  rootSeed: NormalizedSeed,
+  index: number,
+): unknown {
+  const override = Object.hasOwn(options, "overrides")
+    ? options.overrides
+    : NO_OVERRIDE
 
   return generateNode(node, options.provider, rootSeed, [index], override)
 }

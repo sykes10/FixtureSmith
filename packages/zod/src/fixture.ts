@@ -1,5 +1,7 @@
 import {
+  assertValidFixtureCount,
   generate,
+  generateMany,
   type FixtureCallback,
   type PrimitiveProvider,
   type SeedInput,
@@ -24,7 +26,22 @@ export type FixtureOverrides<T> = T extends AtomicFixtureValue
       | FixtureCallback<T>
     : FixtureValueOverride<T>
 
-export function fixture<S extends z.ZodType>(
+export interface FixtureFunction {
+  <S extends z.ZodType>(
+    schema: S,
+    overrides?: FixtureOverrides<z.output<S>>,
+    options?: FixtureOptions,
+  ): z.output<S>
+
+  many<S extends z.ZodType>(
+    schema: S,
+    count: number,
+    overrides?: FixtureOverrides<z.output<S>>,
+    options?: FixtureOptions,
+  ): Array<z.output<S>>
+}
+
+function createFixture<S extends z.ZodType>(
   schema: S,
   overrides?: FixtureOverrides<z.output<S>>,
   options: FixtureOptions = {},
@@ -38,3 +55,26 @@ export function fixture<S extends z.ZodType>(
 
   return schema.parse(generated) as z.output<S>
 }
+
+function createManyFixtures<S extends z.ZodType>(
+  schema: S,
+  count: number,
+  overrides?: FixtureOverrides<z.output<S>>,
+  options: FixtureOptions = {},
+): Array<z.output<S>> {
+  assertValidFixtureCount(count)
+  if (count === 0) return []
+
+  const node = normalizeZodSchema(schema)
+  const generated = generateMany(node, count, {
+    provider: options.provider ?? new FakerProvider(),
+    ...(overrides === undefined ? {} : { overrides }),
+    ...(options.seed === undefined ? {} : { seed: options.seed }),
+  })
+
+  return generated.map((value) => schema.parse(value) as z.output<S>)
+}
+
+export const fixture: FixtureFunction = Object.assign(createFixture, {
+  many: createManyFixtures,
+})

@@ -23,6 +23,11 @@ const user = fixture(User, {
 })
 
 expectType<z.output<typeof User>>(user)
+expectType<Array<z.output<typeof User>>>(fixture.many(User, 3))
+
+fixture.many(User, 3, {
+  email: ({ index }) => `user-${index}@example.test`,
+})
 
 fixture(User, {
   profile: { website: null },
@@ -39,3 +44,6 @@ fixture(User, { email: () => 42 })
 
 // @ts-expect-error array members must match the schema output
 fixture(User, { roles: ["owner"] })
+
+// @ts-expect-error collection overrides retain field types
+fixture.many(User, 3, { email: 42 })

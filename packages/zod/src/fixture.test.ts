@@ -284,4 +284,59 @@ describe("fixture", () => {
       fixture(Schema, { nullable: null, optional: undefined }, { seed: 42 }),
     ).toEqual({ nullable: null, optional: undefined })
   })
+
+  it("generates deterministic collections", () => {
+    const Schema = z.object({ id: z.uuid(), name: z.string() })
+
+    const first = fixture.many(Schema, 100, undefined, { seed: 42 })
+    const second = fixture.many(Schema, 100, undefined, { seed: 42 })
+
+    expect(first).toEqual(second)
+    expect(first).toHaveLength(100)
+    expect(first.every((value) => Schema.safeParse(value).success)).toBe(true)
+  })
+
+  it("makes a single fixture equal collection item zero", () => {
+    const Schema = z.object({
+      id: z.uuid(),
+      tags: z.array(z.string()).min(1).max(4),
+    })
+
+    expect(fixture(Schema, undefined, { seed: 42 })).toEqual(
+      fixture.many(Schema, 1, undefined, { seed: 42 })[0],
+    )
+  })
+
+  it("passes collection indexes to callback overrides", () => {
+    const Schema = z.object({ label: z.string() })
+
+    const values = fixture.many(
+      Schema,
+      3,
+      { label: ({ index }) => `item-${index}` },
+      { seed: 42 },
+    )
+
+    expect(values).toEqual([
+      { label: "item-0" },
+      { label: "item-1" },
+      { label: "item-2" },
+    ])
+  })
+
+  it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    "rejects invalid collection count %s",
+    (count) => {
+      expect(() => fixture.many(z.string(), count)).toThrowError(
+        expect.objectContaining({
+          code: "INVALID_FIXTURE_OPTIONS",
+          path: [],
+        }) as InvalidSchemaConstraintError,
+      )
+    },
+  )
+
+  it("returns zero values without normalizing the schema", () => {
+    expect(fixture.many(z.map(z.string(), z.string()), 0)).toEqual([])
+  })
 })
