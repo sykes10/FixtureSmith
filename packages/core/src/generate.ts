@@ -1,6 +1,11 @@
 import { InvalidSchemaConstraintError, type PathSegment } from "./errors.js"
 import type { DateNode, GenerationNode, NumberNode, StringNode } from "./ir.js"
-import type { PrimitiveProvider } from "./provider.js"
+import {
+  NO_OVERRIDE,
+  type FixtureCallback,
+  type RuntimeOverride,
+} from "./overrides.js"
+import { bindProvider, type PrimitiveProvider } from "./provider.js"
 import {
   createRandom,
   deriveSeed,
@@ -10,6 +15,8 @@ import {
 } from "./random.js"
 
 export interface GenerateOptions {
+  readonly index?: number
+  readonly overrides?: unknown
   readonly provider: PrimitiveProvider
   readonly seed?: SeedInput
 }
@@ -19,7 +26,13 @@ export function generate(
   options: GenerateOptions,
 ): unknown {
   const rootSeed = resolveRootSeed(options.seed)
-  return generateNode(node, options.provider, rootSeed, [0])
+  const index = options.index ?? 0
+  const override =
+    Object.hasOwn(options, "overrides") && options.overrides !== undefined
+      ? options.overrides
+      : NO_OVERRIDE
+
+  return generateNode(node, options.provider, rootSeed, [index], override)
 }
 
 function generateNode(
@@ -27,7 +40,33 @@ function generateNode(
   provider: PrimitiveProvider,
   rootSeed: NormalizedSeed,
   path: readonly PathSegment[],
+  override: RuntimeOverride,
 ): unknown {
+  if (override !== NO_OVERRIDE) {
+    if (typeof override === "function") {
+      const random = createRandom(deriveSeed(rootSeed, path, "override"))
+      return (override as FixtureCallback<unknown>)({
+        index: path[0] as number,
+        path,
+        seed: rootSeed,
+        random,
+        provider: bindProvider(provider, { path, random, rootSeed }),
+      })
+    }
+
+    if (node.kind === "optional" || node.kind === "nullable") {
+      if (override === null || override === undefined) {
+        return override
+      }
+
+      return generateNode(node.inner, provider, rootSeed, path, override)
+    }
+
+    if (node.kind !== "object" || !isMergeableObject(override)) {
+      return override
+    }
+  }
+
   switch (node.kind) {
     case "string": {
       const random = createRandom(deriveSeed(rootSeed, path))
@@ -88,20 +127,43 @@ function generateNode(
       const length = randomInteger(minimum, maximum, lengthRandom)
 
       return Array.from({ length }, (_, index) =>
-        generateNode(node.element, provider, rootSeed, [...path, index]),
+        generateNode(
+          node.element,
+          provider,
+          rootSeed,
+          [...path, index],
+          NO_OVERRIDE,
+        ),
       )
     }
     case "optional":
     case "nullable":
-      return generateNode(node.inner, provider, rootSeed, path)
+      return generateNode(node.inner, provider, rootSeed, path, NO_OVERRIDE)
     case "object":
       return Object.fromEntries(
         node.properties.map(({ key, node: child }) => [
           key,
-          generateNode(child, provider, rootSeed, [...path, key]),
+          generateNode(
+            child,
+            provider,
+            rootSeed,
+            [...path, key],
+            isMergeableObject(override) && Object.hasOwn(override, key)
+              ? override[key]
+              : NO_OVERRIDE,
+          ),
         ]),
       )
   }
+}
+
+function isMergeableObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value) as unknown
+  return prototype === Object.prototype || prototype === null
 }
 
 const DEFAULT_NUMBER_MINIMUM = -1_000

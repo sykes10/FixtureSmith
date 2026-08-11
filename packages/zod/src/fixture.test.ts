@@ -1,6 +1,7 @@
 import {
   InvalidSchemaConstraintError,
   UnsupportedSchemaError,
+  type FixtureCallbackContext,
 } from "@fixturesmith/core"
 import { describe, expect, expectTypeOf, it } from "vitest"
 import { z } from "zod"
@@ -227,5 +228,60 @@ describe("fixture", () => {
     expect(Schema.safeParse(value).success).toBe(true)
     expect(value.profile.homepage).not.toBeNull()
     expect(value.verified).toBeTypeOf("boolean")
+  })
+
+  it("deeply merges static object overrides", () => {
+    const Schema = z.object({
+      id: z.uuid(),
+      profile: z.object({
+        displayName: z.string(),
+        website: z.url(),
+      }),
+      roles: z.array(z.enum(["admin", "member"])),
+    })
+    const generated = fixture(Schema, undefined, { seed: 42 })
+    const overridden = fixture(
+      Schema,
+      {
+        profile: { displayName: "Ada" },
+        roles: ["admin"],
+      },
+      { seed: 42 },
+    )
+
+    expect(overridden).toMatchObject({
+      id: generated.id,
+      profile: {
+        displayName: "Ada",
+        website: generated.profile.website,
+      },
+      roles: ["admin"],
+    })
+  })
+
+  it("runs deterministic callback overrides with scoped context", () => {
+    const Schema = z.object({ email: z.email(), token: z.uuid() })
+    const overrides = {
+      email: ({ index, path, provider }: FixtureCallbackContext) =>
+        `${index}-${path.at(-1)}-${provider.uuid()}@example.test`,
+    }
+
+    const first = fixture(Schema, overrides, { seed: 42 })
+    const second = fixture(Schema, overrides, { seed: 42 })
+
+    expect(first).toEqual(second)
+    expect(first.email).toMatch(/^0-email-/)
+    expect(Schema.safeParse(first).success).toBe(true)
+  })
+
+  it("supports explicit null and undefined overrides", () => {
+    const Schema = z.object({
+      nullable: z.string().nullable(),
+      optional: z.string().optional(),
+    })
+
+    expect(
+      fixture(Schema, { nullable: null, optional: undefined }, { seed: 42 }),
+    ).toEqual({ nullable: null, optional: undefined })
   })
 })

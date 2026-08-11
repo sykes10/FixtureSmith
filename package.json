@@ -18,7 +18,7 @@
     "packages:check": "pnpm -r --if-present run package:check",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.tests.json --pretty false"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",

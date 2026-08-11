@@ -1,5 +1,6 @@
 import {
   generate,
+  type FixtureCallback,
   type PrimitiveProvider,
   type SeedInput,
 } from "@fixturesmith/core"
@@ -13,14 +14,25 @@ export interface FixtureOptions {
   readonly seed?: SeedInput
 }
 
+type AtomicFixtureValue = Date | readonly unknown[]
+type FixtureValueOverride<T> = T | FixtureCallback<T>
+
+export type FixtureOverrides<T> = T extends AtomicFixtureValue
+  ? FixtureValueOverride<T>
+  : T extends object
+    ? | { [K in keyof T]?: FixtureOverrides<T[K]> | FixtureCallback<T[K]> }
+      | FixtureCallback<T>
+    : FixtureValueOverride<T>
+
 export function fixture<S extends z.ZodType>(
   schema: S,
-  _overrides?: undefined,
+  overrides?: FixtureOverrides<z.output<S>>,
   options: FixtureOptions = {},
 ): z.output<S> {
   const node = normalizeZodSchema(schema)
   const generated = generate(node, {
     provider: options.provider ?? new FakerProvider(),
+    ...(overrides === undefined ? {} : { overrides }),
     ...(options.seed === undefined ? {} : { seed: options.seed }),
   })
 
