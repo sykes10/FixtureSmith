@@ -56,6 +56,26 @@ export interface EnumNode {
   readonly values: readonly (string | number)[]
 }
 
+export interface ArrayNode {
+  readonly kind: "array"
+  readonly sourceKind: string
+  readonly element: GenerationNode
+  readonly minLength?: number
+  readonly maxLength?: number
+}
+
+export interface OptionalNode {
+  readonly kind: "optional"
+  readonly sourceKind: string
+  readonly inner: GenerationNode
+}
+
+export interface NullableNode {
+  readonly kind: "nullable"
+  readonly sourceKind: string
+  readonly inner: GenerationNode
+}
+
 export type GenerationNode =
   | StringNode
   | NumberNode
@@ -63,4 +83,7 @@ export type GenerationNode =
   | DateNode
   | LiteralNode
   | EnumNode
+  | ArrayNode
+  | OptionalNode
+  | NullableNode
   | ObjectNode

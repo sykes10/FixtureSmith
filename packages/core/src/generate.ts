@@ -73,6 +73,27 @@ function generateNode(
         path,
         rootSeed,
       )
+    case "array": {
+      const minimum =
+        node.maxLength === 0 ? 0 : Math.max(node.minLength ?? 0, 1)
+      const maximum = node.maxLength ?? Math.max(minimum, 3)
+
+      if (minimum > maximum) {
+        throw impossibleRange("array length", minimum, maximum, path, rootSeed)
+      }
+
+      const lengthRandom = createRandom(
+        deriveSeed(rootSeed, path, "array-length"),
+      ).next()
+      const length = randomInteger(minimum, maximum, lengthRandom)
+
+      return Array.from({ length }, (_, index) =>
+        generateNode(node.element, provider, rootSeed, [...path, index]),
+      )
+    }
+    case "optional":
+    case "nullable":
+      return generateNode(node.inner, provider, rootSeed, path)
     case "object":
       return Object.fromEntries(
         node.properties.map(({ key, node: child }) => [

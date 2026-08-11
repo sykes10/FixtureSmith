@@ -165,4 +165,67 @@ describe("fixture", () => {
       }) as UnsupportedSchemaError,
     )
   })
+
+  it.each(Array.from({ length: 20 }, (_, seed) => seed))(
+    "generates recursive schema nodes for seed %s",
+    (seed) => {
+      const Schema = z.object({
+        aliases: z.array(z.string().min(2)).min(2).max(4),
+        profile: z.object({
+          bio: z.string().optional(),
+          website: z.url().nullable(),
+        }),
+      })
+
+      const value = fixture(Schema, undefined, { seed })
+
+      expect(Schema.safeParse(value).success).toBe(true)
+      expect(value.aliases.length).toBeGreaterThanOrEqual(2)
+      expect(value.aliases.length).toBeLessThanOrEqual(4)
+      expect(value.profile.bio).toBeTypeOf("string")
+      expect(value.profile.website).toBeTypeOf("string")
+    },
+  )
+
+  it("supports exact and empty array lengths", () => {
+    const Schema = z.object({
+      empty: z.array(z.string()).length(0),
+      exact: z.array(z.number()).length(3),
+    })
+
+    const value = fixture(Schema, undefined, { seed: 42 })
+
+    expect(value.empty).toEqual([])
+    expect(value.exact).toHaveLength(3)
+    expect(Schema.safeParse(value).success).toBe(true)
+  })
+
+  it("generates a representative deeply nested schema", () => {
+    const Schema = z.object({
+      id: z.uuid(),
+      email: z.email(),
+      profile: z.object({
+        displayName: z.string().min(3).max(30),
+        homepage: z.url().nullable(),
+      }),
+      orders: z
+        .array(
+          z.object({
+            createdAt: z.date(),
+            id: z.uuid(),
+            status: z.enum(["pending", "paid", "failed"]),
+            total: z.number().min(0).max(10_000),
+          }),
+        )
+        .min(1)
+        .max(5),
+      verified: z.boolean().optional(),
+    })
+
+    const value = fixture(Schema, undefined, { seed: "acceptance" })
+
+    expect(Schema.safeParse(value).success).toBe(true)
+    expect(value.profile.homepage).not.toBeNull()
+    expect(value.verified).toBeTypeOf("boolean")
+  })
 })

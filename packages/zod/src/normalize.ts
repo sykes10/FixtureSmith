@@ -12,7 +12,9 @@ interface ZodDefinition {
   readonly type: string
   readonly shape?: Readonly<Record<string, z.ZodType>>
   readonly checks?: readonly ZodCheck[]
+  readonly element?: z.ZodType
   readonly entries?: Readonly<Record<string, string | number>>
+  readonly innerType?: z.ZodType
   readonly values?: readonly unknown[]
 }
 
@@ -21,6 +23,9 @@ interface ZodCheck {
     readonly def: {
       readonly check: string
       readonly inclusive?: boolean
+      readonly length?: number
+      readonly maximum?: number
+      readonly minimum?: number
       readonly value?: unknown
     }
   }
@@ -99,6 +104,33 @@ export function normalizeZodSchema(
         sourceKind: definition.type,
         values: Object.values(definition.entries ?? {}),
       }
+    case "array": {
+      if (definition.element === undefined) {
+        throw new UnsupportedSchemaError(definition.type, path)
+      }
+
+      const lengths = normalizeArrayChecks(definition.checks ?? [], path)
+      validateArrayConstraints(lengths.minLength, lengths.maxLength, path)
+
+      return {
+        kind: "array",
+        sourceKind: definition.type,
+        element: normalizeZodSchema(definition.element, [...path, 0]),
+        ...lengths,
+      }
+    }
+    case "optional":
+    case "nullable": {
+      if (definition.innerType === undefined) {
+        throw new UnsupportedSchemaError(definition.type, path)
+      }
+
+      return {
+        kind: definition.type,
+        sourceKind: definition.type,
+        inner: normalizeZodSchema(definition.innerType, path),
+      }
+    }
     case "object": {
       if (definition.shape === undefined) {
         throw new UnsupportedSchemaError(definition.type, path)
@@ -115,6 +147,54 @@ export function normalizeZodSchema(
     }
     default:
       throw new UnsupportedSchemaError(definition.type, path)
+  }
+}
+
+function normalizeArrayChecks(
+  checks: readonly ZodCheck[],
+  path: readonly PathSegment[],
+): { minLength?: number; maxLength?: number } {
+  let minimum: number | undefined
+  let maximum: number | undefined
+
+  for (const check of checks) {
+    const checkDefinition = check._zod.def
+
+    switch (checkDefinition.check) {
+      case "min_length":
+        minimum = checkDefinition.minimum
+        break
+      case "max_length":
+        maximum = checkDefinition.maximum
+        break
+      case "length_equals":
+        minimum = checkDefinition.length
+        maximum = checkDefinition.length
+        break
+      default:
+        throw new UnsupportedSchemaError(
+          `array check ${checkDefinition.check}`,
+          path,
+        )
+    }
+  }
+
+  return {
+    ...(minimum === undefined ? {} : { minLength: minimum }),
+    ...(maximum === undefined ? {} : { maxLength: maximum }),
+  }
+}
+
+function validateArrayConstraints(
+  minimum: number | undefined,
+  maximum: number | undefined,
+  path: readonly PathSegment[],
+): void {
+  if (minimum !== undefined && maximum !== undefined && minimum > maximum) {
+    throw new InvalidSchemaConstraintError(
+      `Array minimum length ${minimum} exceeds maximum length ${maximum}.`,
+      path,
+    )
   }
 }
 
