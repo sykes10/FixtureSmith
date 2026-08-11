@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 
+import { InvalidFixtureOptionsError } from "./errors.js"
 import { createRandom, deriveSeed, normalizeSeed } from "./random.js"
 
 describe("deterministic random sources", () => {
@@ -26,4 +27,16 @@ describe("deterministic random sources", () => {
       deriveSeed(root, [0, "email"]),
     )
   })
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "rejects invalid numeric seed %s",
+    (seed) => {
+      expect(() => normalizeSeed(seed)).toThrowError(
+        expect.objectContaining({
+          code: "INVALID_FIXTURE_OPTIONS",
+          path: [],
+        }) as InvalidFixtureOptionsError,
+      )
+    },
+  )
 })

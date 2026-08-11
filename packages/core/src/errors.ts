@@ -24,6 +24,38 @@ export class InvalidSchemaConstraintError extends FixtureError {
   readonly code = "INVALID_SCHEMA_CONSTRAINT"
 }
 
+export class FixtureValidationError extends FixtureError {
+  readonly code = "FIXTURE_VALIDATION"
+
+  constructor(
+    message: string,
+    path: readonly PathSegment[],
+    seed: NormalizedSeed,
+    readonly issues: readonly unknown[],
+    cause: unknown,
+  ) {
+    super(message, path, seed, { cause })
+  }
+}
+
+export class ProviderError extends FixtureError {
+  readonly code = "PROVIDER_ERROR"
+
+  constructor(
+    readonly operation: string,
+    path: readonly PathSegment[],
+    seed: NormalizedSeed,
+    cause: unknown,
+  ) {
+    super(
+      `Fixture provider operation ${operation} failed at ${formatPath(path)}. Seed: ${seed}.`,
+      path,
+      seed,
+      { cause },
+    )
+  }
+}
+
 export class UnsupportedSchemaError extends FixtureError {
   readonly code = "UNSUPPORTED_SCHEMA"
 
@@ -32,7 +64,7 @@ export class UnsupportedSchemaError extends FixtureError {
     path: readonly PathSegment[],
   ) {
     super(
-      `FixtureSmith cannot generate ${sourceKind} at ${formatPath(path)}.`,
+      `FixtureSmith cannot generate ${sourceKind} at ${formatPath(path)}. Use a documented supported schema construct.`,
       path,
     )
   }

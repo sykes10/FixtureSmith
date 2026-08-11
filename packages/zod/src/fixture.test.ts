@@ -1,7 +1,10 @@
 import {
+  FixtureValidationError,
   InvalidSchemaConstraintError,
+  ProviderError,
   UnsupportedSchemaError,
   type FixtureCallbackContext,
+  type PrimitiveProvider,
 } from "@fixturesmith/core"
 import { describe, expect, expectTypeOf, it } from "vitest"
 import { z } from "zod"
@@ -338,5 +341,87 @@ describe("fixture", () => {
 
   it("returns zero values without normalizing the schema", () => {
     expect(fixture.many(z.map(z.string(), z.string()), 0)).toEqual([])
+  })
+
+  it("wraps validation failures with path, seed, issues, and cause", () => {
+    const Schema = z.object({ email: z.email() })
+
+    try {
+      fixture(Schema, { email: "invalid" as never }, { seed: 42 })
+      expect.unreachable("fixture should fail validation")
+    } catch (error) {
+      if (!(error instanceof FixtureValidationError)) throw error
+
+      expect(error).toMatchObject({
+        code: "FIXTURE_VALIDATION",
+        path: ["email"],
+      })
+      expect(error.seed).toBeTypeOf("number")
+      expect(error.issues).not.toHaveLength(0)
+      expect(error.cause).toBeInstanceOf(z.ZodError)
+    }
+  })
+
+  it("prefixes collection validation paths with the item index", () => {
+    const Schema = z.object({ email: z.email() })
+
+    try {
+      fixture.many(
+        Schema,
+        3,
+        { email: ({ index }) => (index === 1 ? "invalid" : "ok@example.test") },
+        { seed: 42 },
+      )
+      expect.unreachable("fixture collection should fail validation")
+    } catch (error) {
+      if (!(error instanceof FixtureValidationError)) throw error
+      expect(error.path).toEqual([1, "email"])
+    }
+  })
+
+  it("wraps provider failures with operation context", () => {
+    const cause = new Error("provider unavailable")
+    const throwingProvider: PrimitiveProvider = {
+      email: () => {
+        throw cause
+      },
+      string: () => {
+        throw cause
+      },
+      url: () => {
+        throw cause
+      },
+      uuid: () => {
+        throw cause
+      },
+    }
+
+    try {
+      fixture(z.string(), undefined, { provider: throwingProvider, seed: 42 })
+      expect.unreachable("provider should fail")
+    } catch (error) {
+      if (!(error instanceof ProviderError)) throw error
+      expect(error).toMatchObject({
+        cause,
+        code: "PROVIDER_ERROR",
+        operation: "string",
+        path: [0],
+      })
+      expect(error.seed).toBeTypeOf("number")
+    }
+  })
+
+  it.each([
+    z.string().trim(),
+    z.string().refine((value) => value === "allowed"),
+    z.boolean().refine(Boolean),
+    z.date().refine((value) => value.getUTCFullYear() === 2020),
+    z.object({ value: z.string() }).refine(({ value }) => value === "allowed"),
+  ])("rejects opaque checks instead of retrying", (Schema) => {
+    expect(() => fixture(Schema, undefined, { seed: 42 })).toThrowError(
+      expect.objectContaining({
+        code: "UNSUPPORTED_SCHEMA",
+      }) as UnsupportedSchemaError,
+    )
   })
 })

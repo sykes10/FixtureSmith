@@ -1,4 +1,4 @@
-import type { PathSegment } from "./errors.js"
+import { FixtureError, ProviderError, type PathSegment } from "./errors.js"
 import type { NormalizedSeed, RandomSource } from "./random.js"
 
 export interface ProviderContext {
@@ -26,9 +26,23 @@ export function bindProvider(
   context: ProviderContext,
 ): BoundPrimitiveProvider {
   return {
-    email: () => provider.email(context),
-    string: () => provider.string(context),
-    url: () => provider.url(context),
-    uuid: () => provider.uuid(context),
+    email: () => callProvider("email", () => provider.email(context), context),
+    string: () =>
+      callProvider("string", () => provider.string(context), context),
+    url: () => callProvider("url", () => provider.url(context), context),
+    uuid: () => callProvider("uuid", () => provider.uuid(context), context),
+  }
+}
+
+function callProvider<T>(
+  operation: string,
+  callback: () => T,
+  context: ProviderContext,
+): T {
+  try {
+    return callback()
+  } catch (error) {
+    if (error instanceof FixtureError) throw error
+    throw new ProviderError(operation, context.path, context.rootSeed, error)
   }
 }

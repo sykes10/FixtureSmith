@@ -46,6 +46,12 @@ export function normalizeZodSchema(
   switch (definition.type) {
     case "string": {
       const stringSchema = schema as z.ZodString
+      assertAllowedChecks(
+        definition.checks ?? [],
+        new Set(["min_length", "max_length", "length_equals", "string_format"]),
+        "string",
+        path,
+      )
       const minimum = stringSchema.minLength ?? undefined
       const maximum = stringSchema.maxLength ?? undefined
       const format = normalizeStringFormat(stringSchema.format, path)
@@ -78,8 +84,15 @@ export function normalizeZodSchema(
       }
     }
     case "boolean":
+      assertAllowedChecks(definition.checks ?? [], new Set(), "boolean", path)
       return { kind: "boolean", sourceKind: definition.type }
     case "date": {
+      assertAllowedChecks(
+        definition.checks ?? [],
+        new Set(["greater_than", "less_than"]),
+        "date",
+        path,
+      )
       const dateSchema = schema as z.ZodDate
       return {
         kind: "date",
@@ -93,12 +106,14 @@ export function normalizeZodSchema(
       }
     }
     case "literal":
+      assertAllowedChecks(definition.checks ?? [], new Set(), "literal", path)
       return {
         kind: "literal",
         sourceKind: definition.type,
         values: definition.values ?? [],
       }
     case "enum":
+      assertAllowedChecks(definition.checks ?? [], new Set(), "enum", path)
       return {
         kind: "enum",
         sourceKind: definition.type,
@@ -132,6 +147,7 @@ export function normalizeZodSchema(
       }
     }
     case "object": {
+      assertAllowedChecks(definition.checks ?? [], new Set(), "object", path)
       if (definition.shape === undefined) {
         throw new UnsupportedSchemaError(definition.type, path)
       }
@@ -147,6 +163,21 @@ export function normalizeZodSchema(
     }
     default:
       throw new UnsupportedSchemaError(definition.type, path)
+  }
+}
+
+function assertAllowedChecks(
+  checks: readonly ZodCheck[],
+  allowed: ReadonlySet<string>,
+  sourceKind: string,
+  path: readonly PathSegment[],
+): void {
+  const unsupported = checks.find((check) => !allowed.has(check._zod.def.check))
+  if (unsupported !== undefined) {
+    throw new UnsupportedSchemaError(
+      `${sourceKind} check ${unsupported._zod.def.check}`,
+      path,
+    )
   }
 }
 

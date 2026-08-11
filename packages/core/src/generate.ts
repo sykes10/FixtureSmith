@@ -25,13 +25,28 @@ export interface GenerateOptions {
   readonly seed?: SeedInput
 }
 
+export interface GenerationResult<T = unknown> {
+  readonly seed: NormalizedSeed
+  readonly value: T
+}
+
 export function generate(
   node: GenerationNode,
   options: GenerateOptions,
 ): unknown {
+  return generateResult(node, options).value
+}
+
+export function generateResult(
+  node: GenerationNode,
+  options: GenerateOptions,
+): GenerationResult {
   const rootSeed = resolveRootSeed(options.seed)
   const index = options.index ?? 0
-  return generateRoot(node, options, rootSeed, index)
+  return {
+    seed: rootSeed,
+    value: generateRoot(node, options, rootSeed, index),
+  }
 }
 
 export function generateMany(
@@ -39,13 +54,23 @@ export function generateMany(
   count: number,
   options: GenerateOptions,
 ): unknown[] {
+  return generateManyResult(node, count, options).value
+}
+
+export function generateManyResult(
+  node: GenerationNode,
+  count: number,
+  options: GenerateOptions,
+): GenerationResult<unknown[]> {
   assertValidFixtureCount(count)
-  if (count === 0) return []
 
   const rootSeed = resolveRootSeed(options.seed)
-  return Array.from({ length: count }, (_, index) =>
-    generateRoot(node, options, rootSeed, index),
-  )
+  return {
+    seed: rootSeed,
+    value: Array.from({ length: count }, (_, index) =>
+      generateRoot(node, options, rootSeed, index),
+    ),
+  }
 }
 
 export function assertValidFixtureCount(count: number): void {
@@ -109,10 +134,11 @@ function generateNode(
         random,
         rootSeed,
       }
+      const boundProvider = bindProvider(provider, context)
       const value =
         node.format === undefined
-          ? provider.string(context)
-          : provider[node.format](context)
+          ? boundProvider.string()
+          : boundProvider[node.format]()
 
       return satisfyStringConstraints(
         value,
