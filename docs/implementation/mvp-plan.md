@@ -52,6 +52,11 @@ reviewable capability rather than only scaffolding a future layer.
 Use current official documentation when selecting exact versions; do not encode
 version guesses from this planning document.
 
+Dependency selection follows the
+[latest-stable dependency policy](../dependency-policy.md). Use a documented
+compatibility exception rather than accepting peer-dependency warnings when two
+latest releases cannot currently be combined.
+
 ## Milestone 1: deterministic walking skeleton
 
 Implement the smallest complete vertical slice:

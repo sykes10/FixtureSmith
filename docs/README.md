@@ -22,6 +22,8 @@ implemented and reviewed. When documents disagree, use this precedence:
    feature.
 7. [MVP implementation plan](implementation/mvp-plan.md) sequences the work into
    vertical milestones.
+8. [Dependency policy](dependency-policy.md) defines how versions are selected
+   and when compatibility exceptions are allowed.
 
 ## Decision records
 

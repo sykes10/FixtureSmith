@@ -1,0 +1,26 @@
+{
+  "name": "@fixturesmith/core",
+  "version": "0.0.0",
+  "description": "Schema-neutral deterministic fixture generation engine",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "package:check": "publint"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

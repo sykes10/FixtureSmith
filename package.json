@@ -1,0 +1,34 @@
+{
+  "name": "fixturesmith",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Schema-first deterministic fixture engine",
+  "type": "module",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "changeset": "changeset",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm packages:check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "packages:check": "pnpm -r --if-present run package:check",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@changesets/cli": "2.31.1",
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.1",
+    "prettier": "3.9.6",
+    "publint": "0.3.23",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.66.0",
+    "vitest": "4.1.10"
+  }
+}

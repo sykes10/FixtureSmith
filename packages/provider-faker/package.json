@@ -1,0 +1,30 @@
+{
+  "name": "@fixturesmith/provider-faker",
+  "version": "0.0.0",
+  "description": "Faker primitive provider for FixtureSmith",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "package:check": "publint"
+  },
+  "dependencies": {
+    "@faker-js/faker": "10.5.0",
+    "@fixturesmith/core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
