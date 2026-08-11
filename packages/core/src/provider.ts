@@ -8,5 +8,8 @@ export interface ProviderContext {
 }
 
 export interface PrimitiveProvider {
+  email(context: ProviderContext): string
   string(context: ProviderContext): string
+  url(context: ProviderContext): string
+  uuid(context: ProviderContext): string
 }

@@ -1,7 +1,12 @@
 export interface StringNode {
   readonly kind: "string"
   readonly sourceKind: string
+  readonly format?: StringFormat
+  readonly minLength?: number
+  readonly maxLength?: number
 }
+
+export type StringFormat = "email" | "url" | "uuid"
 
 export interface ObjectProperty {
   readonly key: string

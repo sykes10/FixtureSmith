@@ -20,6 +20,10 @@ export class InvalidFixtureOptionsError extends FixtureError {
   readonly code = "INVALID_FIXTURE_OPTIONS"
 }
 
+export class InvalidSchemaConstraintError extends FixtureError {
+  readonly code = "INVALID_SCHEMA_CONSTRAINT"
+}
+
 export class UnsupportedSchemaError extends FixtureError {
   readonly code = "UNSUPPORTED_SCHEMA"
 
