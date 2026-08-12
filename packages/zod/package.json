@@ -1,6 +1,6 @@
 {
   "name": "@fixturesmith/zod",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Generate typed deterministic fixtures from Zod schemas",
   "homepage": "https://github.com/sykes10/FixtureSmith#readme",
   "repository": {

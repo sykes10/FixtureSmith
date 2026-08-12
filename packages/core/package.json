@@ -1,6 +1,6 @@
 {
   "name": "@fixturesmith/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Schema-neutral deterministic fixture generation engine",
   "homepage": "https://github.com/sykes10/FixtureSmith#readme",
   "repository": {
