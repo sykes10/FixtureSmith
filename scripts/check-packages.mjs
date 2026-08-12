@@ -8,9 +8,28 @@ import {
   writeFileSync,
 } from "node:fs"
 import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
+import { basename, dirname, join, resolve } from "node:path"
+
+// Spawn the pnpm that invoked this script. Resolving `corepack` or `pnpm` from
+// PATH finds a .cmd shim on Windows, which Node refuses to spawn without a
+// shell, and enabling a shell would put user-controlled paths through cmd
+// quoting. npm_execpath is pnpm's own entry point: a JavaScript file under
+// corepack, or a native executable for a standalone install.
+const pnpmEntry = process.env.npm_execpath
+if (pnpmEntry === undefined) {
+  throw new Error(
+    "check-packages must run through pnpm. Use `pnpm packages:check`.",
+  )
+}
+const pnpmEntryIsScript = /\.[cm]?js$/i.test(pnpmEntry)
 
 const root = resolve(import.meta.dirname, "..")
+
+// The consumer project is installed by the pnpm that invoked this script rather
+// than by whichever pnpm a shell resolves, so confirm it matches the pinned
+// release. A stale major silently changes lockfile and workspace semantics.
+assertPinnedPnpm()
+
 const modulesManifest = readFileSync(
   join(root, "node_modules", ".modules.yaml"),
   "utf8",
@@ -32,10 +51,8 @@ try {
   mkdirSync(tarballDirectory)
 
   for (const packageName of packages) {
-    run(
-      "corepack",
+    runPnpm(
       [
-        "pnpm",
         "--dir",
         join(root, "packages", packageName),
         "pack",
@@ -57,19 +74,17 @@ try {
   }
 
   for (const tarball of tarballs) {
-    run(
-      "corepack",
-      ["pnpm", "exec", "attw", tarball, "--profile", "esm-only"],
-      root,
-    )
+    runPnpm(["exec", "attw", tarball, "--profile", "esm-only"], root)
     assertTarballExcludesBuildMetadata(tarball)
   }
 
   mkdirSync(consumerDirectory)
+  // Forward slashes keep the specifier valid in both JSON and YAML. A Windows
+  // path would otherwise read as an escape sequence in a double-quoted scalar.
   const tarball = (name) => {
     const match = tarballs.find((file) => file.includes(name))
     if (match === undefined) throw new Error(`Missing ${name} tarball.`)
-    return `file:${match}`
+    return `file:${match.replaceAll("\\", "/")}`
   }
 
   writeFileSync(
@@ -158,19 +173,11 @@ if (
 `,
   )
 
-  run(
-    "corepack",
-    [
-      "pnpm",
-      "install",
-      "--offline",
-      "--ignore-scripts",
-      "--store-dir",
-      storeDirectory,
-    ],
+  runPnpm(
+    ["install", "--offline", "--ignore-scripts", "--store-dir", storeDirectory],
     consumerDirectory,
   )
-  run("corepack", ["pnpm", "exec", "tsc"], consumerDirectory)
+  runPnpm(["exec", "tsc"], consumerDirectory)
   run(
     process.execPath,
     [join(consumerDirectory, "dist", "index.js")],
@@ -178,6 +185,36 @@ if (
   )
 } finally {
   rmSync(temporaryDirectory, { force: true, recursive: true })
+}
+
+function runPnpm(arguments_, cwd) {
+  if (pnpmEntryIsScript) {
+    run(process.execPath, [pnpmEntry, ...arguments_], cwd)
+    return
+  }
+  run(pnpmEntry, arguments_, cwd)
+}
+
+function assertPinnedPnpm() {
+  const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
+  const pinned = manifest.packageManager?.replace(/^pnpm@/, "")
+  if (pinned === undefined) {
+    throw new Error("Root package.json is missing a packageManager pin.")
+  }
+
+  const actual = execFileSync(
+    pnpmEntryIsScript ? process.execPath : pnpmEntry,
+    pnpmEntryIsScript ? [pnpmEntry, "--version"] : ["--version"],
+    { cwd: root, encoding: "utf8" },
+  ).trim()
+
+  if (actual.split(".")[0] !== pinned.split(".")[0]) {
+    throw new Error(
+      `This script ran under pnpm ${actual}, but the repository pins ${pinned}. ` +
+        "Run `corepack enable` so pnpm resolves to the pinned release, or " +
+        "invoke the command as `corepack pnpm packages:check`.",
+    )
+  }
 }
 
 function run(command, arguments_, cwd) {
@@ -188,8 +225,17 @@ function run(command, arguments_, cwd) {
   })
 }
 
+// GNU tar reads a leading `C:` as a remote host, so run from the tarball's own
+// directory and pass a bare file name instead of relying on --force-local,
+// which bsdtar does not accept.
+function tar(arguments_, cwd) {
+  return execFileSync("tar", arguments_, { cwd, encoding: "utf8" })
+}
+
 function assertTarballExcludesBuildMetadata(tarball) {
-  const listing = execFileSync("tar", ["-tzf", tarball], { encoding: "utf8" })
+  const directory = dirname(tarball)
+  const file = basename(tarball)
+  const listing = tar(["-tzf", file], directory)
   if (listing.includes(".tsbuildinfo") || listing.includes(".d.ts.map")) {
     throw new Error(`Build metadata leaked into ${tarball}.`)
   }
@@ -204,9 +250,7 @@ function assertTarballExcludesBuildMetadata(tarball) {
     throw new Error(`Missing package.json in ${tarball}.`)
 
   const packageJson = JSON.parse(
-    execFileSync("tar", ["-xOf", tarball, packageJsonEntry], {
-      encoding: "utf8",
-    }),
+    tar(["-xOf", file, packageJsonEntry], directory),
   )
   if (packageJson.license !== "MIT") {
     throw new Error(`Missing MIT license metadata in ${tarball}.`)
