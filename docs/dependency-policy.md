@@ -34,7 +34,6 @@ Recheck active exceptions whenever dependencies change.
 | Dependency | Selected | Latest checked | Reason | Removal condition |
 | --- | --- | --- | --- | --- |
 | TypeScript | 6.0.3 | 7.0.2 | TypeScript-ESLint declares support below TypeScript 6.1. | TypeScript-ESLint supports TypeScript 7. |
-| TypeScript-ESLint | 8.66.0 | 8.67.0 | Latest release is still inside pnpm's registry safety window. | Release clears the safety window. |
 | Changesets | 2.31.1 | 3.0.0 | Latest release is still inside pnpm's registry safety window. | Release clears the safety window. |
 
 Versions in this table reflect the last manual check, not a permanent pinning

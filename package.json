@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "description": "Schema-first deterministic fixture engine",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sykes10/FixtureSmith.git"
+  },
   "type": "module",
   "packageManager": "pnpm@11.21.0",
   "engines": {
@@ -15,7 +20,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "packages:check": "pnpm -r --if-present run package:check",
+    "packages:check": "pnpm build && pnpm -r --if-present run package:check && node scripts/check-packages.mjs",
+    "release": "pnpm build && changeset publish",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "typecheck": "tsc -b --pretty false && tsc -p tsconfig.tests.json --pretty false"
@@ -28,7 +34,7 @@
     "prettier": "3.9.6",
     "publint": "0.3.23",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.66.0",
+    "typescript-eslint": "8.67.0",
     "vitest": "4.1.10"
   }
 }

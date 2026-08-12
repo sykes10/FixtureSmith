@@ -175,7 +175,11 @@ function generateNode(
     case "array": {
       const minimum =
         node.maxLength === 0 ? 0 : Math.max(node.minLength ?? 0, 1)
-      const maximum = node.maxLength ?? Math.max(minimum, 3)
+      const usefulMaximum = Math.max(minimum, Math.min(minimum + 2, 3))
+      const maximum =
+        node.maxLength === undefined
+          ? usefulMaximum
+          : Math.min(node.maxLength, usefulMaximum)
 
       if (minimum > maximum) {
         throw impossibleRange("array length", minimum, maximum, path, rootSeed)
@@ -231,6 +235,8 @@ const DEFAULT_NUMBER_MAXIMUM = 1_000
 const DEFAULT_DATE_MINIMUM = Date.UTC(2000, 0, 1)
 const DEFAULT_DATE_MAXIMUM = Date.UTC(2030, 0, 1)
 const ONE_YEAR_MILLISECONDS = 365 * 24 * 60 * 60 * 1_000
+const MINIMUM_DATE_MILLISECONDS = -8_640_000_000_000_000
+const MAXIMUM_DATE_MILLISECONDS = 8_640_000_000_000_000
 
 function generateNumber(
   node: NumberNode,
@@ -287,6 +293,8 @@ function generateDate(
     DEFAULT_DATE_MINIMUM,
     DEFAULT_DATE_MAXIMUM,
     ONE_YEAR_MILLISECONDS,
+    MINIMUM_DATE_MILLISECONDS,
+    MAXIMUM_DATE_MILLISECONDS,
   )
 
   if (minimum > maximum) {
@@ -302,23 +310,19 @@ function resolveFiniteRange(
   defaultMinimum: number,
   defaultMaximum: number,
   oneSidedSpan: number,
+  lowerLimit = -Number.MAX_SAFE_INTEGER,
+  upperLimit = Number.MAX_SAFE_INTEGER,
 ): readonly [number, number] {
   if (schemaMinimum === undefined && schemaMaximum === undefined) {
     return [defaultMinimum, defaultMaximum]
   }
 
   if (schemaMinimum !== undefined && schemaMaximum === undefined) {
-    return [
-      schemaMinimum,
-      Math.min(Number.MAX_SAFE_INTEGER, schemaMinimum + oneSidedSpan),
-    ]
+    return [schemaMinimum, Math.min(upperLimit, schemaMinimum + oneSidedSpan)]
   }
 
   if (schemaMinimum === undefined && schemaMaximum !== undefined) {
-    return [
-      Math.max(-Number.MAX_SAFE_INTEGER, schemaMaximum - oneSidedSpan),
-      schemaMaximum,
-    ]
+    return [Math.max(lowerLimit, schemaMaximum - oneSidedSpan), schemaMaximum]
   }
 
   return [schemaMinimum as number, schemaMaximum as number]
@@ -412,7 +416,10 @@ function satisfyStringConstraints(
     node.format === undefined
       ? Math.max(minimum, 16)
       : Math.max(minimum, providerValue.length)
-  const maximum = node.maxLength ?? defaultMaximum
+  const maximum =
+    node.maxLength === undefined
+      ? defaultMaximum
+      : Math.min(node.maxLength, defaultMaximum)
   const targetLength =
     node.format === undefined
       ? randomInteger(minimum, maximum, lengthRandom)

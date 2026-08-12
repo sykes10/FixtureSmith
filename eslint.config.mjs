@@ -5,6 +5,14 @@ export default tseslint.config(
   {
     ignores: ["**/dist/**", "**/node_modules/**"],
   },
+  {
+    files: ["**/*.mjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+      },
+    },
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
 )

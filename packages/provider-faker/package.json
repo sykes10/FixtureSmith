@@ -2,6 +2,22 @@
   "name": "@fixturesmith/provider-faker",
   "version": "0.0.0",
   "description": "Faker primitive provider for FixtureSmith",
+  "homepage": "https://github.com/sykes10/FixtureSmith#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sykes10/FixtureSmith.git",
+    "directory": "packages/provider-faker"
+  },
+  "bugs": {
+    "url": "https://github.com/sykes10/FixtureSmith/issues"
+  },
+  "keywords": [
+    "faker",
+    "fixtures",
+    "testing",
+    "test-data"
+  ],
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -14,7 +30,7 @@
     }
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "build": "tsc -b",

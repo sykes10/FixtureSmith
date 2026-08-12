@@ -1,8 +1,6 @@
 # v0.1 public API contract
 
-This document defines the proposed v0.1 TypeScript API. Names can change before
-the first implementation lands, but implementation should not begin with the
-contradictory value-and-builder behavior shown in the exploratory PRD examples.
+This document defines the implemented v0.1 TypeScript API.
 
 ## Imports
 
@@ -139,7 +137,7 @@ const users = fixture.many(UserSchema, 3, {
 }, { seed: 42 })
 ```
 
-The callback API should expose a narrow deterministic context:
+The callback API exposes a narrow deterministic context:
 
 ```ts
 interface FixtureCallbackContext {

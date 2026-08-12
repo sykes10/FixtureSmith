@@ -20,10 +20,14 @@ implemented and reviewed. When documents disagree, use this precedence:
 5. [Errors](errors.md) defines failure categories and required diagnostics.
 6. [Testing strategy](testing-strategy.md) defines evidence required for each
    feature.
-7. [MVP implementation plan](implementation/mvp-plan.md) sequences the work into
+7. [Custom providers](providers.md) defines the provider author contract.
+8. [MVP implementation plan](implementation/mvp-plan.md) sequences the work into
    vertical milestones.
-8. [Dependency policy](dependency-policy.md) defines how versions are selected
+9. [Dependency policy](dependency-policy.md) defines how versions are selected
    and when compatibility exceptions are allowed.
+10. [Release readiness](release-readiness.md) maps v0.1 acceptance criteria to
+    evidence.
+11. [Release process](releasing.md) defines versioning, CI, and npm provenance.
 
 ## Decision records
 

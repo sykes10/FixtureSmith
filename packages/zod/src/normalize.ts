@@ -117,7 +117,9 @@ export function normalizeZodSchema(
       return {
         kind: "enum",
         sourceKind: definition.type,
-        values: Object.values(definition.entries ?? {}),
+        values: [...new Set(Object.values(definition.entries ?? {}))].filter(
+          (value) => schema.safeParse(value).success,
+        ),
       }
     case "array": {
       if (definition.element === undefined) {
@@ -241,12 +243,14 @@ function normalizeNumberChecks(
 
     switch (checkDefinition.check) {
       case "greater_than":
+        assertFiniteNumberBoundary(checkDefinition.value, path)
         minimum = {
           value: checkDefinition.value as number,
           inclusive: checkDefinition.inclusive ?? false,
         }
         break
       case "less_than":
+        assertFiniteNumberBoundary(checkDefinition.value, path)
         maximum = {
           value: checkDefinition.value as number,
           inclusive: checkDefinition.inclusive ?? false,
@@ -265,6 +269,18 @@ function normalizeNumberChecks(
   return {
     ...(minimum === undefined ? {} : { minimum }),
     ...(maximum === undefined ? {} : { maximum }),
+  }
+}
+
+function assertFiniteNumberBoundary(
+  value: unknown,
+  path: readonly PathSegment[],
+): asserts value is number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new InvalidSchemaConstraintError(
+      "Number constraints must use finite boundaries.",
+      path,
+    )
   }
 }
 

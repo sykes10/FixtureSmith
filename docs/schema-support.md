@@ -9,8 +9,8 @@ can parse. A construct is supported only when:
 2. the engine can generate a useful value deterministically, and
 3. compatibility tests prove generated values pass the original schema.
 
-The package must declare and test an explicit supported Zod version range before
-release. Zod introspection is isolated in `@fixturesmith/zod`.
+The package supports Zod `^4.0.0`, with compatibility tested against the pinned
+workspace release. Zod introspection is isolated in `@fixturesmith/zod`.
 
 ## Required MVP matrix
 

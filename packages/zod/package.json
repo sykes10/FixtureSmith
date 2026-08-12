@@ -2,6 +2,23 @@
   "name": "@fixturesmith/zod",
   "version": "0.0.0",
   "description": "Generate typed deterministic fixtures from Zod schemas",
+  "homepage": "https://github.com/sykes10/FixtureSmith#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sykes10/FixtureSmith.git",
+    "directory": "packages/zod"
+  },
+  "bugs": {
+    "url": "https://github.com/sykes10/FixtureSmith/issues"
+  },
+  "keywords": [
+    "zod",
+    "fixtures",
+    "testing",
+    "test-data",
+    "typescript"
+  ],
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -14,7 +31,7 @@
     }
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "build": "tsc -b",

@@ -86,6 +86,18 @@ describe("fixture", () => {
     expect(fixture(Schema, undefined, { seed: 42 })).toEqual({ empty: "" })
   })
 
+  it("keeps permissive maximum-only collections usefully small", () => {
+    const Schema = z.object({
+      names: z.array(z.string()).max(1_000_000),
+      text: z.string().max(1_000_000),
+    })
+    const value = fixture(Schema, undefined, { seed: 42 })
+
+    expect(value.names.length).toBeLessThanOrEqual(3)
+    expect(value.text.length).toBeLessThanOrEqual(16)
+    expect(Schema.safeParse(value).success).toBe(true)
+  })
+
   it("rejects impossible string constraints with their path", () => {
     const Schema = z.object({ id: z.uuid().max(35) })
 
@@ -146,6 +158,42 @@ describe("fixture", () => {
       instant,
       value: 3.5,
     })
+  })
+
+  it("keeps one-sided dates within JavaScript's valid range", () => {
+    const minimum = new Date(8_639_999_999_999_000)
+    const Schema = z.date().min(minimum)
+
+    const value = fixture(Schema, undefined, { seed: 42 })
+
+    expect(Number.isNaN(value.getTime())).toBe(false)
+    expect(value.getTime()).toBeGreaterThanOrEqual(minimum.getTime())
+    expect(Schema.safeParse(value).success).toBe(true)
+  })
+
+  it("rejects non-finite numeric boundaries", () => {
+    const Schema = z.number().min(Number.POSITIVE_INFINITY)
+
+    expect(() => fixture(Schema, undefined, { seed: 42 })).toThrowError(
+      expect.objectContaining({
+        code: "INVALID_SCHEMA_CONSTRAINT",
+        path: [],
+      }) as InvalidSchemaConstraintError,
+    )
+  })
+
+  it("selects only valid members from numeric TypeScript enums", () => {
+    enum Role {
+      Admin,
+      Member,
+    }
+    const Schema = z.object({ role: z.enum(Role) })
+
+    for (let seed = 0; seed < 20; seed += 1) {
+      expect(
+        Schema.safeParse(fixture(Schema, undefined, { seed })).success,
+      ).toBe(true)
+    }
   })
 
   it("rejects integer ranges containing no integer", () => {
@@ -310,6 +358,24 @@ describe("fixture", () => {
     )
   })
 
+  it("keeps shared array items stable when cardinality changes", () => {
+    const Short = z.object({ tags: z.array(z.string()).length(2) })
+    const Long = z.object({ tags: z.array(z.string()).length(4) })
+
+    expect(fixture(Long, undefined, { seed: 42 }).tags.slice(0, 2)).toEqual(
+      fixture(Short, undefined, { seed: 42 }).tags,
+    )
+  })
+
+  it("keeps existing fields stable when a sibling is added", () => {
+    const Before = z.object({ name: z.string() })
+    const After = z.object({ email: z.email(), name: z.string() })
+
+    expect(fixture(After, undefined, { seed: 42 }).name).toBe(
+      fixture(Before, undefined, { seed: 42 }).name,
+    )
+  })
+
   it("passes collection indexes to callback overrides", () => {
     const Schema = z.object({ label: z.string() })
 
@@ -325,6 +391,20 @@ describe("fixture", () => {
       { label: "item-1" },
       { label: "item-2" },
     ])
+  })
+
+  it("runs callback overrides once per relevant collection field", () => {
+    const Schema = z.object({ label: z.string(), untouched: z.string() })
+    let invocations = 0
+
+    fixture.many(Schema, 5, {
+      label: ({ index }) => {
+        invocations += 1
+        return `item-${index}`
+      },
+    })
+
+    expect(invocations).toBe(5)
   })
 
   it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
@@ -411,6 +491,30 @@ describe("fixture", () => {
     }
   })
 
+  it("accepts a deterministic custom primitive provider", () => {
+    const provider: PrimitiveProvider = {
+      email: ({ random }) => `user-${random.uint32() % 1_000}@example.test`,
+      string: ({ random }) => `value-${random.uint32() % 1_000}`,
+      url: ({ random }) => `https://example.test/${random.uint32() % 1_000}`,
+      uuid: ({ random }) => {
+        const value = random.uint32().toString(16).padStart(8, "0")
+        return `${value}-0000-4000-8000-000000000000`
+      },
+    }
+    const Schema = z.object({
+      email: z.email(),
+      id: z.uuid(),
+      name: z.string(),
+      url: z.url(),
+    })
+
+    const first = fixture(Schema, undefined, { provider, seed: 42 })
+    const second = fixture(Schema, undefined, { provider, seed: 42 })
+
+    expect(first).toEqual(second)
+    expect(Schema.safeParse(first).success).toBe(true)
+  })
+
   it.each([
     z.string().trim(),
     z.string().refine((value) => value === "allowed"),
@@ -423,5 +527,29 @@ describe("fixture", () => {
         code: "UNSUPPORTED_SCHEMA",
       }) as UnsupportedSchemaError,
     )
+  })
+
+  it("locks representative seeded output for this package version", () => {
+    const Schema = z.object({
+      active: z.boolean(),
+      email: z.email(),
+      id: z.uuid(),
+      name: z.string().min(6).max(10),
+      scores: z.array(z.number().int().min(0).max(10)).length(2),
+    })
+
+    expect(fixture(Schema, undefined, { seed: "golden-v0.1" }))
+      .toMatchInlineSnapshot(`
+      {
+        "active": false,
+        "email": "Carolyn36@yahoo.com",
+        "id": "0f6fb527-5136-48ef-b42b-f7a15d37f1d5",
+        "name": "rarelyra",
+        "scores": [
+          5,
+          10,
+        ],
+      }
+    `)
   })
 })

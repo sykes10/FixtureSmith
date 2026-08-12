@@ -2,6 +2,22 @@
   "name": "@fixturesmith/core",
   "version": "0.0.0",
   "description": "Schema-neutral deterministic fixture generation engine",
+  "homepage": "https://github.com/sykes10/FixtureSmith#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sykes10/FixtureSmith.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/sykes10/FixtureSmith/issues"
+  },
+  "keywords": [
+    "fixtures",
+    "testing",
+    "test-data",
+    "typescript"
+  ],
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -14,7 +30,7 @@
     }
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "build": "tsc -b",

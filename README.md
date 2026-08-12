@@ -6,13 +6,21 @@ typed, and reproducible application data.
 > Faker generates fake values. FixtureSmith generates reproducible application
 > states.
 
-## Project status
+## Status
 
-FixtureSmith is in pre-implementation design. The first release is deliberately
-narrow: Zod schemas become valid deterministic fixtures with typed overrides,
-collection generation, and Faker-backed semantic primitives.
+FixtureSmith v0.1 is implemented and preparing for its first package release. It
+turns supported Zod schemas into valid deterministic fixtures with typed
+overrides, collection generation, and Faker-backed semantic primitives.
 
-The examples below describe the agreed v0.1 API; they are not implemented yet.
+## Install
+
+FixtureSmith is ESM-only and requires Node.js 22.18 or newer.
+
+```sh
+pnpm add -D @fixturesmith/zod zod
+```
+
+## Quick start
 
 ```ts
 import { fixture } from "@fixturesmith/zod"
@@ -30,6 +38,38 @@ const admin = fixture(User, { name: "Ada" }, { seed: 42 })
 const users = fixture.many(User, 20, undefined, { seed: 42 })
 ```
 
+Every generated result is parsed by its source schema. The same FixtureSmith
+version, schema, configuration, provider, and seed reproduce the same complete
+value.
+
+### Callback overrides
+
+Callbacks receive deterministic scoped randomness, a bound provider, the field
+path, and the collection item index:
+
+```ts
+const users = fixture.many(
+  User,
+  3,
+  {
+    email: ({ index, provider }) =>
+      `user-${index}-${provider.uuid()}@example.test`,
+  },
+  { seed: "users" },
+)
+```
+
+Overrides remain subject to the source schema. Invalid output throws a structured
+`FixtureValidationError` containing the normalized reproduction seed and path.
+
+## Why FixtureSmith
+
+Faker is the primitive-value catalogue underneath FixtureSmith; it does not know
+your application's schema. Hand-written factories know the schema, but usually
+duplicate it and require every irrelevant field to be maintained. FixtureSmith
+walks the supported parts of the schema, delegates realistic primitives to
+Faker, and lets each test override only the fields that express its intent.
+
 ## Documentation
 
 - [Product requirements](fixturesmith-prd.md)
@@ -40,6 +80,9 @@ const users = fixture.many(User, 20, undefined, { seed: 42 })
 - [Determinism](docs/determinism.md)
 - [Errors and diagnostics](docs/errors.md)
 - [Testing strategy](docs/testing-strategy.md)
+- [Custom providers](docs/providers.md)
+- [v0.1 release readiness](docs/release-readiness.md)
+- [Release process](docs/releasing.md)
 - [MVP implementation plan](docs/implementation/mvp-plan.md)
 - [Architecture decisions](docs/decisions/README.md)
 
@@ -66,5 +109,4 @@ Deferred:
 
 ## License
 
-The PRD recommends a permissive license. The repository must add an explicit
-license before its first public release.
+[MIT](LICENSE)
