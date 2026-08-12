@@ -1,0 +1,56 @@
+name: Bug report
+description: Report reproducible incorrect behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value:
+        Thanks for helping improve FixtureSmith. Never include sensitive
+        production data.
+  - type: input
+    id: version
+    attributes:
+      label: FixtureSmith version
+      placeholder: "@fixturesmith/zod 0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "Node 22.18, pnpm 11, Zod 4.4"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description:
+        Include the smallest schema, options, overrides, and seed that reproduce
+        the problem.
+      render: typescript
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label:
+            I checked the schema support matrix and searched existing issues.
+          required: true
+        - label: This report contains no production data or secrets.
+          required: true

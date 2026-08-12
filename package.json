@@ -16,7 +16,12 @@
   "scripts": {
     "build": "tsc -b",
     "changeset": "changeset",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm packages:check",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm examples:check && pnpm docs:build && pnpm packages:check",
+    "docs:build": "vitepress build docs",
+    "docs:dev": "vitepress dev docs",
+    "docs:preview": "vitepress preview docs",
+    "demo:basic": "pnpm build && pnpm --filter @fixturesmith-example/basic demo",
+    "examples:check": "pnpm build && pnpm --filter './examples/*' check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
@@ -35,6 +40,7 @@
     "publint": "0.3.23",
     "typescript": "6.0.3",
     "typescript-eslint": "8.67.0",
+    "vitepress": "1.6.4",
     "vitest": "4.1.10"
   }
 }

@@ -1,0 +1,14 @@
+{
+  "name": "@fixturesmith-example/custom-provider",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc -p tsconfig.json && pnpm demo",
+    "demo": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/index.ts"
+  },
+  "dependencies": {
+    "@fixturesmith/core": "workspace:*",
+    "@fixturesmith/zod": "workspace:*",
+    "zod": "4.4.3"
+  }
+}

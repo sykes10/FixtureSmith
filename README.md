@@ -1,5 +1,13 @@
 # FixtureSmith
 
+[![CI](https://github.com/sykes10/FixtureSmith/actions/workflows/ci.yml/badge.svg)](https://github.com/sykes10/FixtureSmith/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-0786bd.svg)](LICENSE)
+[![Node.js 22.18+](https://img.shields.io/badge/Node.js-22.18%2B-339933.svg)](package.json)
+
+[Documentation](https://sykes10.github.io/FixtureSmith/) ·
+[Runnable examples](examples/) ·
+[Open in StackBlitz](https://stackblitz.com/github/sykes10/FixtureSmith?file=examples/basic/src/index.ts&startScript=demo%3Abasic)
+
 FixtureSmith is a schema-first TypeScript fixture engine for generating valid,
 typed, and reproducible application data.
 
@@ -70,6 +78,22 @@ duplicate it and require every irrelevant field to be maintained. FixtureSmith
 walks the supported parts of the schema, delegates realistic primitives to
 Faker, and lets each test override only the fields that express its intent.
 
+## Runnable demos
+
+| Demo | What it proves |
+| --- | --- |
+| [Basic](examples/basic/) | Generate one typed fixture and a deterministic collection. |
+| [Overrides](examples/overrides/) | Merge a deep override and derive fields from the item index. |
+| [Vitest](examples/vitest/) | Replay the same fixture inside a real test. |
+| [Custom provider](examples/custom-provider/) | Replace Faker while retaining deterministic randomness. |
+
+```sh
+pnpm examples:check
+```
+
+Every demo is type-checked and executed in CI. The documentation site imports
+the same source files, so its examples cannot silently drift from the API.
+
 ## Documentation
 
 - [Product requirements](fixturesmith-prd.md)
@@ -83,8 +107,15 @@ Faker, and lets each test override only the fields that express its intent.
 - [Custom providers](docs/providers.md)
 - [v0.1 release readiness](docs/release-readiness.md)
 - [Release process](docs/releasing.md)
+- [GitHub repository setup](docs/github-setup.md)
 - [MVP implementation plan](docs/implementation/mvp-plan.md)
 - [Architecture decisions](docs/decisions/README.md)
+
+## Contributing
+
+Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), review
+the [schema support matrix](docs/schema-support.md), and include a changeset for
+published behavior or declaration changes.
 
 ## v0.1 boundaries
 

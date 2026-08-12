@@ -28,6 +28,8 @@ implemented and reviewed. When documents disagree, use this precedence:
 10. [Release readiness](release-readiness.md) maps v0.1 acceptance criteria to
     evidence.
 11. [Release process](releasing.md) defines versioning, CI, and npm provenance.
+12. [GitHub setup](github-setup.md) records the one-time repository settings for
+    Pages, community features, and the social preview.
 
 ## Decision records
 

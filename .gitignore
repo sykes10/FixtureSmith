@@ -4,4 +4,6 @@ node_modules/
 coverage/
 .cache/
 .pnpm-store/
+docs/.vitepress/.cache/
+docs/.vitepress/.temp/
 .DS_Store

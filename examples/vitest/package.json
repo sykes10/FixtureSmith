@@ -1,0 +1,12 @@
+{
+  "name": "@fixturesmith-example/vitest",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc -p tsconfig.json && vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@fixturesmith/zod": "workspace:*",
+    "zod": "4.4.3"
+  }
+}
