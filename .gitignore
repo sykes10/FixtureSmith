@@ -6,4 +6,5 @@ coverage/
 .pnpm-store/
 docs/.vitepress/.cache/
 docs/.vitepress/.temp/
+docs/.vitepress/cache/
 .DS_Store
