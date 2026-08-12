@@ -8,6 +8,7 @@ snippets.
 | --- | --- | --- |
 | `basic` | Immediate generation, `many()`, and a reusable definition | `pnpm --filter @fixturesmith-example/basic check` |
 | `overrides` | Deep static and callback overrides | `pnpm --filter @fixturesmith-example/overrides check` |
+| `scenarios` | A coherent application state from a fixture set | `pnpm --filter @fixturesmith-example/scenarios check` |
 | `vitest` | A replayable fixture in a real test | `pnpm --filter @fixturesmith-example/vitest check` |
 | `custom-provider` | Replacing Faker through the provider contract | `pnpm --filter @fixturesmith-example/custom-provider check` |
 
@@ -23,6 +24,10 @@ to explore the basic example without a local setup.
 ## Basic
 
 <<< ../../examples/basic/src/index.ts
+
+## Scenarios
+
+<<< ../../examples/scenarios/src/index.ts
 
 ## Custom provider
 

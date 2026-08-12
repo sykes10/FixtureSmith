@@ -1,132 +1,80 @@
-# API reference
+# API cheat sheet
 
-Application code normally imports from `@fixturesmith/zod`.
+Signatures only. The [public API contract](../public-api.md) is the canonical
+description of behavior, precedence, and guarantees.
 
-## `fixture()`
+Application code imports from `@fixturesmith/zod`.
 
-```ts
-fixture(schema, options?)
-```
-
-Returns `z.output<typeof schema>` after generating and parsing one value.
-
-## `fixture.many()`
+## Generation
 
 ```ts
-fixture.many(schema, count, options?)
+fixture(schema, options?): z.output<S>
+fixture.many(schema, count, options?): Array<z.output<S>>
 ```
 
-Returns `Array<z.output<typeof schema>>`. `count` must be a non-negative safe
-integer. A zero count returns immediately without walking the schema.
+`count` must be a non-negative safe integer.
 
-## Options
-
-- `seed?: number | string` controls deterministic replay.
-- `now?: Date` supplies the shared session instant; the default is
-  `2000-01-01T00:00:00.000Z`.
-- `provider?: PrimitiveProvider` replaces the default Faker provider.
-- `optionals?: "present" | "omit"` controls optional values.
-- `nullables?: "value" | "null"` controls nullable values.
-- `overrides?: FixtureOverrides<z.output<S>>` customizes generated values.
-
-## Overrides
-
-Pass overrides through the options object. Each output field accepts its inferred
-static value, a callback returning that value, or a recursive partial object for
-nested fields. Unknown properties and incorrect values fail TypeScript
-compilation.
-
-## `defineFixture()`
+## Reusable definitions
 
 ```ts
-const user = defineFixture(UserSchema, {
-  defaults: {
-    role: "member",
-  },
-  variants: {
-    admin: { role: "admin" },
-  },
-})
+defineFixture(schema, config?): FixtureDefinition
+// config: { defaults?, variants?, derive? }
 
-user.create({ variant: "admin", seed: 42 })
-user.many(3, { variant: "admin", seed: 42 })
+definition.create(options?): z.output<S>
+definition.many(count, options?): Array<z.output<S>>
+// options add: { variant? }
 ```
 
-Definitions are immutable declarations. Defaults and the selected variant use
-the same typed static values and deterministic callbacks as overrides. At most
-one variant can be selected per creation.
-
-The optional derivation callback receives a complete provisional value, the
-collection index, and the shared session time. Its typed partial result is
-applied atomically, while explicitly overridden target fields remain unchanged.
-The final value is parsed by the source schema.
+## Fixture sets
 
 ```ts
-const booking = defineFixture(BookingSchema, {
-  derive: ({ value }) => ({
-    endsAt: addHours(value.startsAt, 2),
-  }),
-})
+defineFixtureSet({ fixtures, scenarios }): FixtureSet
+
+set.fixtures                              // the definitions, still usable alone
+set.createScenario(name, options?)        // returns what the recipe returned
+// options add: { overrides: { [fixtureName]: … } }
 ```
 
-## `defineFixtureSet()`
+Inside a recipe:
 
 ```ts
-const commerce = defineFixtureSet({
-  fixtures: { customer, order },
-  scenarios: {
-    customerWithOrders: ({ create }) => {
-      const account = create("customer", { variant: "pro" })
-      return {
-        account,
-        orders: create.many("order", 3, {
-          overrides: { customerId: account.id },
-        }),
-      }
-    },
-  },
-})
-
-commerce.createScenario("customerWithOrders", { seed: 42 })
-commerce.fixtures.customer.create({ seed: 42 })
+create(name, options?)                    // options: { overrides?, variant? }
+create.many(name, count, options?)
 ```
 
-A fixture set is an immutable composition of fixture definitions and scenarios.
-`createScenario` returns exactly what the recipe returned.
+## Session options
 
-Every fixture created by one `createScenario` call shares one generation
-session, so `seed`, `now`, `provider`, `optionals`, and `nullables` belong to
-`createScenario` rather than to the individual `create()` calls. Each call
-derives its own seed from the session root seed, the scenario name, and its
-position in the recipe.
+Accepted by `fixture`, `fixture.many`, `create`, `many`, and `createScenario`:
 
-### Scenario context
+| Option | Type | Default |
+| --- | --- | --- |
+| `seed` | `number \| string` | platform entropy |
+| `now` | `Date` | `2000-01-01T00:00:00.000Z` |
+| `provider` | `PrimitiveProvider` | Faker provider |
+| `optionals` | `"present" \| "omit"` | `"present"` |
+| `nullables` | `"value" \| "null"` | `"value"` |
+| `overrides` | `FixtureOverrides<z.output<S>>` | none |
 
-```ts
-interface ScenarioContext<F> {
-  readonly create: ScenarioCreate<F>
-  readonly now: Date
-  readonly seed: NormalizedSeed
-}
-```
-
-`create(name, options?)` and `create.many(name, count, options?)` accept only
-`overrides` and `variant`. Recipes compose by calling another `ScenarioRecipe`
-with the same context.
-
-### Scenario options
-
-`createScenario(name, options?)` accepts the session options above plus
-`overrides` keyed by fixture name. Those overrides apply to every fixture of
-that name in the recipe and take precedence over the recipe's own overrides.
-
-See the [scenarios guide](../guides/scenarios.md).
+Inside a scenario these belong to `createScenario`, not to individual `create()`
+calls.
 
 ## Errors
 
-The Zod facade exports `FixtureError` and every concrete error class. Consumers
-should branch on the stable `code` property rather than matching complete error
-messages.
+Every concrete error class is exported alongside `FixtureError`. Branch on the
+stable `code` property rather than matching messages.
 
-See the detailed [public API contract](../public-api.md) and
-[error reference](../errors.md).
+| Code | Class |
+| --- | --- |
+| `UNSUPPORTED_SCHEMA` | `UnsupportedSchemaError` |
+| `INVALID_SCHEMA_CONSTRAINT` | `InvalidSchemaConstraintError` |
+| `INVALID_FIXTURE_OPTIONS` | `InvalidFixtureOptionsError` |
+| `FIXTURE_VALIDATION` | `FixtureValidationError` |
+| `PROVIDER_ERROR` | `ProviderError` |
+
+## Where behavior is defined
+
+- [Public API contract](../public-api.md) — semantics, precedence, guarantees
+- [Overrides](../guides/overrides.md) and [Scenarios](../guides/scenarios.md)
+- [Schema support](../schema-support.md) — the supported Zod subset
+- [Determinism](../determinism.md) — the seed contract
+- [Errors](../errors.md) — diagnostics detail

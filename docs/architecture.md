@@ -32,9 +32,11 @@ packages/
 
   zod/
     src/
-      define-fixture.ts Reusable definition facade and composition
-      fixture.ts       Typed public facade
-      normalize.ts     Zod schema -> core IR
+      define-fixture.ts     Reusable definition facade
+      define-fixture-set.ts Fixture sets and scenario sessions
+      fixture.ts            Typed public facade
+      merge.ts              Shared override merge and snapshot helpers
+      normalize.ts          Zod schema -> core IR
       index.ts
 ```
 
@@ -58,8 +60,8 @@ More precisely:
 - `core` has no dependency on Zod, Faker, or an integration framework.
 - `provider-faker` depends on `core` and Faker.
 - `zod` depends on `core` and the default Faker provider, and declares Zod as a
-  peer dependency. It owns the typed public `fixture()` and future
-  `defineFixture()` facades.
+  peer dependency. It owns the typed public `fixture()`, `defineFixture()`, and
+  `defineFixtureSet()` facades.
 - The Zod package is the convenience entrypoint and wires the default provider,
   so first use requires no provider configuration.
 
@@ -118,7 +120,7 @@ Constraints are normalized data, not executable Zod checks. Examples include
 minimum, inclusive/exclusive maximum, integer, exact length, and semantic format.
 The source kind is retained for useful adapter errors.
 
-Do not put these in the v0.1 IR:
+Do not put these in the core IR:
 
 - fixture definitions or scenarios
 - graph relations
@@ -158,15 +160,17 @@ interface PrimitiveProvider {
   email(context: ProviderContext): string
   uuid(context: ProviderContext): string
   url(context: ProviderContext): string
-  number(context: NumberProviderContext): number
-  boolean(context: ProviderContext): boolean
-  date(context: DateProviderContext): Date
 }
 ```
 
-The final interface may consolidate operations, but every provider operation
-must receive engine-controlled scoped randomness. Providers must not silently
-seed or consume a global singleton.
+The contract covers semantic and general string values only. Numbers, booleans,
+and dates are calculated by the engine from normalized constraints, because
+their realism comes from the schema's bounds rather than from a catalogue. New
+operations are added only when a value's realism cannot come from constraints
+alone.
+
+Every provider operation receives engine-controlled scoped randomness. Providers
+must not silently seed or consume a global singleton.
 
 Constraint application belongs either before or after provider calls according
 to the value type, but the final generated value must satisfy all supported

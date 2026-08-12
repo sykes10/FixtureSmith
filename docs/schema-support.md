@@ -1,4 +1,4 @@
-# Zod schema support for v0.1
+# Zod schema support
 
 ## Support policy
 
@@ -12,9 +12,9 @@ can parse. A construct is supported only when:
 The package supports Zod `^4.0.0`, with compatibility tested against the pinned
 workspace release. Zod introspection is isolated in `@fixturesmith/zod`.
 
-## Required MVP matrix
+## Supported matrix
 
-| Construct | v0.1 behavior |
+| Construct | Behavior |
 | --- | --- |
 | Object | Generate every required property recursively. |
 | String | Generate a non-empty value satisfying supported length checks. |
@@ -37,8 +37,8 @@ workspace release. Zod introspection is isolated in `@fixturesmith/zod`.
 
 ## Candidate stretch support
 
-These can enter v0.1 only after all required nodes are complete and each addition
-has focused compatibility tests:
+These are not yet supported. Each may be added once it has focused compatibility
+tests covering validation, determinism, negative cases, and type inference:
 
 - simple unions where at least one branch is fully supported
 - discriminated unions with a supported discriminator
@@ -47,7 +47,7 @@ has focused compatibility tests:
 - common string patterns that map to explicit provider operations
 - `multipleOf` where a valid bounded value can be calculated safely
 
-They are not blockers for the first release.
+None of them block a release.
 
 ## Explicitly unsupported in the first pass
 
@@ -91,8 +91,8 @@ added to the compatibility table.
 
 ## Arrays
 
-When unconstrained, v0.1 uses a small deterministic default range selected during
-implementation and locked by tests. Required behavior:
+When unconstrained, the engine uses a small deterministic default range locked by
+tests. Required behavior:
 
 - exact length wins over min/max defaults,
 - generated length remains within min/max,

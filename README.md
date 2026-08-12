@@ -151,10 +151,9 @@ the same source files, so its examples cannot silently drift from the API.
 - [Errors and diagnostics](docs/errors.md)
 - [Testing strategy](docs/testing-strategy.md)
 - [Custom providers](docs/providers.md)
-- [v0.1 release readiness](docs/release-readiness.md)
+- [Release readiness](docs/release-readiness.md)
 - [Release process](docs/releasing.md)
 - [GitHub repository setup](docs/github-setup.md)
-- [MVP implementation plan](docs/implementation/mvp-plan.md)
 - [Architecture decisions](docs/decisions/README.md)
 
 ## Contributing

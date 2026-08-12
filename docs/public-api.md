@@ -168,15 +168,18 @@ interface FixtureCallbackContext {
 
 `provider` is bound to the current scoped random source, so callbacks do not pass
 context manually. Sibling values are deliberately absent because they would
-create field-order and partial-object semantics. Future cross-field dependencies
-will use a separate explicit derivation mechanism.
+create field-order and partial-object semantics. Cross-field dependencies use the
+separate explicit derivation mechanism on `defineFixture()` described below.
 
 ### Override precedence
 
-Immediate generation has two applicable layers:
+Immediate `fixture()` generation has two applicable layers:
 
 1. Per-call override
 2. Schema-derived or provider-generated value
+
+Reusable definitions add defaults, variants, and derivation; fixture sets add a
+scenario layer. Both are described in their own sections below.
 
 ## Reusable fixture definitions
 
@@ -329,7 +332,7 @@ global `Math.random()` violates the contract.
 
 ## Deliberately excluded fluent API
 
-v0.1 does not support:
+FixtureSmith does not support:
 
 ```ts
 fixture(UserSchema).seed(42)

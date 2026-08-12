@@ -3,10 +3,9 @@
 This directory converts the product intent in the PRD into contracts that can be
 implemented and reviewed. When documents disagree, use this precedence:
 
-1. The PRD controls product goals and release scope.
+1. The PRD controls product goals, release scope, and sequencing.
 2. Accepted architecture decision records control deliberate technical choices.
 3. The engineering specifications control implemented behavior.
-4. The implementation plan controls sequencing, not behavior.
 
 ## Read before implementation
 
@@ -21,15 +20,16 @@ implemented and reviewed. When documents disagree, use this precedence:
 6. [Testing strategy](testing-strategy.md) defines evidence required for each
    feature.
 7. [Custom providers](providers.md) defines the provider author contract.
-8. [MVP implementation plan](implementation/mvp-plan.md) sequences the work into
-   vertical milestones.
-9. [Dependency policy](dependency-policy.md) defines how versions are selected
+8. [Dependency policy](dependency-policy.md) defines how versions are selected
    and when compatibility exceptions are allowed.
-10. [Release readiness](release-readiness.md) maps v0.1 acceptance criteria to
-    evidence.
-11. [Release process](releasing.md) defines versioning, CI, and npm provenance.
-12. [GitHub setup](github-setup.md) records the one-time repository settings for
+9. [Release readiness](release-readiness.md) maps the first release's acceptance
+   criteria to evidence.
+10. [Release process](releasing.md) defines versioning, CI, and npm provenance.
+11. [GitHub setup](github-setup.md) records the one-time repository settings for
     Pages, community features, and the social preview.
+
+Release sequencing lives in the PRD roadmap rather than a separate plan
+document.
 
 ## Decision records
 
