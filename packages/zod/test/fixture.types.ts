@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { defineFixture, fixture } from "../src/index.js"
+import { defineFixture, defineFixtureSet, fixture } from "../src/index.js"
 
 declare function expectType<T>(value: T): void
 
@@ -126,5 +126,87 @@ defineFixture(User, {
     // @ts-expect-error derivation receives readonly arrays
     value.roles.push("admin")
     return {}
+  },
+})
+
+const Order = z.object({
+  id: z.uuid(),
+  ownerEmail: z.email(),
+  total: z.number(),
+})
+
+const orderDefinition = defineFixture(Order, {
+  variants: { paid: { total: 10 } },
+})
+
+const commerce = defineFixtureSet({
+  fixtures: { order: orderDefinition, user: userDefinition },
+  scenarios: {
+    userWithOrders: ({ create }) => {
+      const owner = create("user", { variant: "admin" })
+      return {
+        orders: create.many("order", 2, {
+          overrides: { ownerEmail: owner.email },
+        }),
+        owner,
+      }
+    },
+  },
+})
+
+const state = commerce.createScenario("userWithOrders", { seed: 42 })
+expectType<z.output<typeof User>>(state.owner)
+expectType<Array<z.output<typeof Order>>>(state.orders)
+expectType<z.output<typeof User>>(commerce.fixtures.user.create())
+
+commerce.createScenario("userWithOrders", {
+  now: new Date(),
+  nullables: "null",
+  optionals: "omit",
+  overrides: { order: { total: 5 }, user: { email: "owner@example.test" } },
+})
+
+// @ts-expect-error only declared scenarios can be created
+commerce.createScenario("unknownScenario")
+
+commerce.createScenario("userWithOrders", {
+  // @ts-expect-error scenario overrides are keyed by fixture name
+  overrides: { unknownFixture: { total: 5 } },
+})
+
+commerce.createScenario("userWithOrders", {
+  // @ts-expect-error scenario overrides retain each fixture output type
+  overrides: { order: { total: "free" } },
+})
+
+defineFixtureSet({
+  fixtures: { order: orderDefinition },
+  scenarios: {
+    // @ts-expect-error only declared fixtures can be created
+    unknownFixture: ({ create }) => create("user"),
+  },
+})
+
+defineFixtureSet({
+  fixtures: { order: orderDefinition },
+  scenarios: {
+    // @ts-expect-error a scenario fixture accepts only its own variants
+    unknownVariant: ({ create }) => create("order", { variant: "refunded" }),
+  },
+})
+
+defineFixtureSet({
+  fixtures: { order: orderDefinition },
+  scenarios: {
+    // @ts-expect-error recipe overrides retain the fixture output type
+    badOverride: ({ create }) => create("order", { overrides: { total: "" } }),
+  },
+})
+
+defineFixtureSet({
+  fixtures: { order: orderDefinition },
+  scenarios: {
+    // @ts-expect-error a scenario has no per-call seed or provider
+    seeded: ({ create }) => create("order", { seed: 42 }),
   },
 })

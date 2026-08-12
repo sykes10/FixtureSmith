@@ -2,7 +2,7 @@
 
 ## Quality bar
 
-The v0.1 release is credible only when every documented supported schema produces
+A release is credible only when every documented supported schema produces
 values accepted by that same schema and every seeded path is reproducible.
 
 Tests should prove behavior at the lowest useful layer and then confirm the
@@ -56,9 +56,19 @@ fixture(schema)
 fixture(schema, { overrides })
 fixture(schema, { overrides, seed })
 fixture.many(schema, count, { overrides, seed })
+
+definition.create({ seed, variant })
+definition.many(count, { seed, variant })
+
+set.createScenario(name, { seed, overrides })
 ```
 
 These tests cover the PRD acceptance criteria and should read like documentation.
+
+Reusable definitions additionally prove default, variant, and derivation
+precedence. Fixture sets prove that one scenario is one generation session, that
+a whole state replays from its seed, and that scenario overrides reach every
+fixture of that name.
 
 ### Type tests
 

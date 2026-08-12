@@ -24,3 +24,19 @@ export {
   type FixtureDerivationContext,
   type FixtureVariants,
 } from "./define-fixture.js"
+export {
+  defineFixtureSet,
+  type AnyFixtureDefinition,
+  type CreateScenarioOptions,
+  type FixtureDefinitionOutput,
+  type FixtureDefinitionRecord,
+  type FixtureDefinitionVariant,
+  type FixtureSet,
+  type FixtureSetConfig,
+  type FixtureSetOverrides,
+  type ScenarioContext,
+  type ScenarioCreate,
+  type ScenarioCreateOptions,
+  type ScenarioRecipe,
+  type ScenarioRecord,
+} from "./define-fixture-set.js"

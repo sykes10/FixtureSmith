@@ -25,5 +25,25 @@ const userDefinition = defineFixture(User, {
 const senior = userDefinition.create({ variant: "senior" })
 ```
 
+Compose definitions into named application states with `defineFixtureSet`. Every
+fixture in one scenario shares a single seed, session time, and provider:
+
+```ts
+import { defineFixtureSet } from "@fixturesmith/zod"
+
+const app = defineFixtureSet({
+  fixtures: { user: userDefinition },
+  scenarios: {
+    team: ({ create }) => ({
+      lead: create("user", { variant: "senior" }),
+      members: create.many("user", 3),
+    }),
+  },
+})
+
+const team = app.createScenario("team", { seed: 42 })
+```
+
 See the [FixtureSmith repository](https://github.com/sykes10/FixtureSmith) for
-overrides, supported schemas, determinism guarantees, and limitations.
+overrides, scenarios, supported schemas, determinism guarantees, and
+limitations.

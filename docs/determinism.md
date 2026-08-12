@@ -115,10 +115,11 @@ the engine remains the owner of the root random context.
 ## Dates and time
 
 Generating a `Date` must use deterministic bounds and scoped randomness. It must
-not use `Date.now()` as an implicit bound. The v0.1 default date interval must be
+not use `Date.now()` as an implicit bound. The default date interval must be
 fixed and documented in code; schema constraints narrow that interval.
 
-Scenario-relative `now` belongs to v0.3 and is not part of this contract.
+One generation session owns one `now`. A scenario is a single session, so every
+fixture it creates shares that instant.
 
 ## Overrides
 

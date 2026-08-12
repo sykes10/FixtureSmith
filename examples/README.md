@@ -7,6 +7,7 @@ the README and documentation site.
 | --- | --- |
 | [`basic`](basic/) | One fixture, typed overrides, and collections |
 | [`overrides`](overrides/) | Deep static and callback overrides |
+| [`scenarios`](scenarios/) | A coherent application state from a fixture set |
 | [`vitest`](vitest/) | Seeded fixture replay in a test |
 | [`custom-provider`](custom-provider/) | A provider with no Faker dependency |
 

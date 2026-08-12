@@ -168,15 +168,18 @@ interface FixtureCallbackContext {
 
 `provider` is bound to the current scoped random source, so callbacks do not pass
 context manually. Sibling values are deliberately absent because they would
-create field-order and partial-object semantics. Future cross-field dependencies
-will use a separate explicit derivation mechanism.
+create field-order and partial-object semantics. Cross-field dependencies use the
+separate explicit derivation mechanism on `defineFixture()` described below.
 
 ### Override precedence
 
-Immediate generation has two applicable layers:
+Immediate `fixture()` generation has two applicable layers:
 
 1. Per-call override
 2. Schema-derived or provider-generated value
+
+Reusable definitions add defaults, variants, and derivation; fixture sets add a
+scenario layer. Both are described in their own sections below.
 
 ## Reusable fixture definitions
 
@@ -226,6 +229,95 @@ Overrides are not an escape hatch from schema validity. The completed object is
 parsed by the source schema. An invalid static or callback result throws a
 FixtureValidationError with path and seed context.
 
+## Fixture sets and scenarios
+
+`defineFixtureSet()` composes fixture definitions with the scenarios that build
+application states from them:
+
+```ts
+function defineFixtureSet<F, S>(config: {
+  fixtures: F
+  scenarios: S
+}): FixtureSet<F, S>
+
+interface FixtureSet<F, S> {
+  readonly fixtures: F
+  createScenario<K extends keyof S & string>(
+    name: K,
+    options?: CreateScenarioOptions<F>,
+  ): ReturnType<S[K]>
+}
+```
+
+A scenario recipe receives a narrow context and returns whatever shape the
+application state needs:
+
+```ts
+interface ScenarioContext<F> {
+  readonly create: ScenarioCreate<F>
+  readonly now: Date
+  readonly seed: NormalizedSeed
+}
+
+interface ScenarioCreateOptions<D> {
+  readonly overrides?: FixtureOverrides<FixtureDefinitionOutput<D>>
+  readonly variant?: FixtureDefinitionVariant<D>
+}
+```
+
+`createScenario` owns the generation session:
+
+```ts
+interface CreateScenarioOptions<F> {
+  now?: Date
+  nullables?: NullablePolicy
+  optionals?: OptionalPolicy
+  overrides?: { [K in keyof F]?: FixtureOverrides<Output<F[K]>> }
+  provider?: PrimitiveProvider
+  seed?: SeedInput
+}
+```
+
+Rules:
+
+- Every fixture in one `createScenario` call shares one root seed, one `now`,
+  one provider, and one optional/nullable policy pair.
+- Individual `create()` calls cannot take a `seed`, `now`, or `provider`.
+- Each `create()` and `create.many()` call derives its seed from the session
+  root seed, the scenario name, and the call's position in the recipe, so
+  repeated calls differ and the whole state replays from one seed.
+- A recipe must not branch on ambient state; use the context `now` and `seed`.
+- Fixture definitions in a set remain independently usable through
+  `set.fixtures`.
+- Each fixture is parsed by its own source schema as it is created.
+
+### Scenario override precedence
+
+1. Definition defaults
+2. Selected variant
+3. Recipe overrides passed to `create()`
+4. Scenario overrides passed to `createScenario()`
+
+Nested object overrides merge recursively across all four layers; arrays and
+other atomic values replace. Variant selection belongs to the recipe and is not
+overridable per call.
+
+This extends the rule in PRD section 11.1 that derivation output cannot replace
+a field explicitly overridden by the call: a named caller override is honored
+rather than silently discarded. A scenario override can therefore break a
+coherence invariant the recipe wired by hand, because the engine cannot
+distinguish a hand-wired foreign key from a domain value. Recognising and
+protecting foreign keys is a declared-relations concern and remains deferred.
+
+### Composition
+
+A recipe is a plain function of its context, so a larger state is composed by
+calling a smaller `ScenarioRecipe` with the same context. The composed recipe
+shares the caller's session.
+
+Relations between fixture types are not declared; a recipe wires foreign keys
+itself. Automatic relation generation remains deferred.
+
 ## Provider customization
 
 ```ts
@@ -240,7 +332,7 @@ global `Math.random()` violates the contract.
 
 ## Deliberately excluded fluent API
 
-v0.1 does not support:
+FixtureSmith does not support:
 
 ```ts
 fixture(UserSchema).seed(42)

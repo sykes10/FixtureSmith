@@ -25,6 +25,8 @@ features:
     details: Deep typed overrides let a test specify its business state without maintaining unrelated fields.
   - title: Reusable definitions
     details: Typed defaults, variants, and derivation capture domain intent once without duplicating schemas.
+  - title: Whole application states
+    details: Fixture sets compose definitions into named scenarios that replay a coherent multi-fixture state from one seed.
   - title: Provider-powered
     details: Faker supplies realistic primitives behind a small replaceable provider contract.
 ---

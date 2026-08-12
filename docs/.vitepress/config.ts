@@ -48,6 +48,7 @@ export default defineConfig({
         items: [
           { text: "Runnable examples", link: "/guides/examples" },
           { text: "Overrides", link: "/guides/overrides" },
+          { text: "Scenarios", link: "/guides/scenarios" },
           { text: "Testing with seeds", link: "/guides/testing" },
           { text: "Custom providers", link: "/providers" },
         ],
@@ -55,7 +56,8 @@ export default defineConfig({
       {
         text: "Reference",
         items: [
-          { text: "Public API", link: "/reference/api" },
+          { text: "API cheat sheet", link: "/reference/api" },
+          { text: "Public API contract", link: "/public-api" },
           { text: "Schema support", link: "/schema-support" },
           { text: "Errors", link: "/errors" },
         ],
