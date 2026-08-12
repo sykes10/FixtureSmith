@@ -23,6 +23,8 @@ features:
     details: A path-derived PRNG keeps the same schema, configuration, provider, and seed deterministic.
   - title: Intentional overrides
     details: Deep typed overrides let a test specify its business state without maintaining unrelated fields.
+  - title: Reusable definitions
+    details: Typed defaults, variants, and derivation capture domain intent once without duplicating schemas.
   - title: Provider-powered
     details: Faker supplies realistic primitives behind a small replaceable provider contract.
 ---
@@ -30,7 +32,7 @@ features:
 ## One schema, complete fixtures
 
 ```ts
-import { fixture } from "@fixturesmith/zod"
+import { defineFixture, fixture } from "@fixturesmith/zod"
 import { z } from "zod"
 
 const User = z.object({
@@ -40,6 +42,10 @@ const User = z.object({
 })
 
 const user = fixture(User, { seed: "docs" })
+
+const reusableUser = defineFixture(User, {
+  defaults: { age: 30 },
+})
 ```
 
 FixtureSmith is currently preparing its first `0.1.0` release. The supported

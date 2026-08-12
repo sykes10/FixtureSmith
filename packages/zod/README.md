@@ -3,7 +3,7 @@
 Generate valid, typed, deterministic fixtures from supported Zod schemas.
 
 ```ts
-import { fixture } from "@fixturesmith/zod"
+import { defineFixture, fixture } from "@fixturesmith/zod"
 import { z } from "zod"
 
 const User = z.object({
@@ -14,6 +14,15 @@ const User = z.object({
 
 const user = fixture(User, { seed: 42 })
 const users = fixture.many(User, 20, { seed: 42 })
+
+const userDefinition = defineFixture(User, {
+  defaults: { age: 30 },
+  variants: {
+    senior: { age: 65 },
+  },
+})
+
+const senior = userDefinition.create({ variant: "senior" })
 ```
 
 See the [FixtureSmith repository](https://github.com/sykes10/FixtureSmith) for

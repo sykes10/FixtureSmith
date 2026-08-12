@@ -2,14 +2,14 @@
 
 ## Objective
 
-The v0.1 architecture must make this path excellent:
+The architecture must make this path excellent:
 
 ```text
 Zod schema -> valid typed fixture
 ```
 
-It must also leave clean seams for later named fixtures, scenarios, relations,
-and adapters without implementing those concepts now.
+It also supports reusable fixture definitions while leaving clean seams for
+later scenarios, relations, and adapters.
 
 ## Package topology
 
@@ -17,9 +17,8 @@ and adapters without implementing those concepts now.
 packages/
   core/
     src/
-      context.ts       Generation context and path tracking
       errors.ts        Shared typed errors
-      generate.ts      Recursive IR interpreter
+      generate.ts      Sessions, policies, and recursive IR interpreter
       ir.ts            Schema-neutral generation nodes
       overrides.ts     Runtime override representation
       provider.ts      Primitive provider contract
@@ -33,10 +32,9 @@ packages/
 
   zod/
     src/
-      constraints.ts   Zod checks -> normalized constraints
+      define-fixture.ts Reusable definition facade and composition
       fixture.ts       Typed public facade
       normalize.ts     Zod schema -> core IR
-      types.ts         Zod-specific override inference
       index.ts
 ```
 
@@ -60,7 +58,8 @@ More precisely:
 - `core` has no dependency on Zod, Faker, or an integration framework.
 - `provider-faker` depends on `core` and Faker.
 - `zod` depends on `core` and the default Faker provider, and declares Zod as a
-  peer dependency.
+  peer dependency. It owns the typed public `fixture()` and future
+  `defineFixture()` facades.
 - The Zod package is the convenience entrypoint and wires the default provider,
   so first use requires no provider configuration.
 
@@ -134,6 +133,7 @@ Every recursive call receives an immutable or logically immutable context:
 
 ```ts
 interface GenerationContext {
+  readonly now: Date
   readonly rootSeed: Seed
   readonly path: readonly PathSegment[]
   readonly random: RandomSource
@@ -144,7 +144,8 @@ interface GenerationContext {
 
 Descending into a field or collection item derives a child context. Path
 segments are field names and numeric indexes. Context must never use implicit
-global randomness or the wall clock.
+global randomness or the wall clock. A session also resolves optional and
+nullable policies once before recursive generation.
 
 ## Provider boundary
 
@@ -188,7 +189,7 @@ Schema normalization may later be cached in a `WeakMap` keyed by schema object.
 Do not add caching until profiling shows value. If introduced, normalized plans
 must be immutable and cache behavior must not affect random output.
 
-## Future extension points
+## Extension points
 
 The intended later layering is:
 

@@ -68,6 +68,10 @@ Modern TypeScript applications often define the same domain shape multiple times
 
 - Generate production data or anonymise real production datasets.
 
+- Return deliberately invalid values or automatic boundary-case suites from
+  fixture APIs. A separate validation-case API may be considered if demand
+  emerges.
+
 - Require an LLM or network request to create fixtures.
 
 - Build a GUI before the library API proves useful.
@@ -102,7 +106,7 @@ Adapters over integrations in core: Keep the core independent and publish thin i
 ```text
 Schema / contract
       ↓
-Fixture definition ── provider hints / overrides
+Fixture definition ── defaults / variants / overrides
       ↓
 Fixture engine ───── deterministic PRNG
       ↓
@@ -115,6 +119,11 @@ Adapters
   ├─ Playwright
   └─ DB seed (later)
 ```
+
+Fixture definitions are independently usable. The application-level layer is an
+optional immutable composition of existing definitions, introduced only for
+cross-fixture scenarios and relations; registration does not change standalone
+fixture behavior.
 
 ## 8. Proposed public API
 
@@ -165,46 +174,58 @@ const user = fixture(User, { seed: 1234 })
 const user = defineFixture(User, {
   defaults: {
     role: "member",
+    email: ({ provider }) => provider.email(),
   },
-  fields: {
-    email: ({ faker }) => faker.internet.email(),
+  variants: {
+    admin: { role: "admin" },
   },
 })
 
 user.create()
-user.create({ role: "admin" })
-user.many(10)
+user.create({ variant: "admin" })
+user.create({ overrides: { role: "admin" }, seed: 42 })
+user.many(10, { variant: "admin", seed: 42 })
 ```
+
+`create()` and variant creation always return the fixture definition's schema
+output. Custom result shapes belong to later multi-fixture scenarios, not to a
+standalone fixture definition. Each unseeded standalone `create()` call starts a
+fresh generation session; repeated calls replay only when given the same seed.
 
 ### 8.5 Scenarios
 
 ```ts
-const customer = defineFixture(CustomerSchema)
-
-customer.scenario("trial-expired", {
-  plan: "trial",
-  trialEndsAt: ({ now }) => now.minus({ days: 1 }),
+const commerce = defineFixtureSet({
+  fixtures: { customer, order },
+  scenarios: {
+    customerWithOrders: ({ create }) => {
+      const account = create("customer", { variant: "pro" })
+      const orders = create.many("order", 3, {
+        overrides: { customerId: account.id },
+      })
+      return { account, orders }
+    },
+  },
 })
 
-customer.createScenario("trial-expired")
+commerce.createScenario("customerWithOrders", { seed: 42 })
 ```
 
 ### 8.6 Relations (post-MVP)
 
 ```ts
-const app = defineFixtures({
-  User: { schema: UserSchema },
-  Order: {
-    schema: OrderSchema,
-    relations: {
-      userId: belongsTo("User"),
+const commerce = defineFixtureSet({
+  fixtures: { user, order },
+  relations: {
+    order: {
+      userId: belongsTo("user"),
     },
   },
 })
 
-const data = app.generate({
-  User: 20,
-  Order: 100,
+const data = commerce.generate({
+  user: 20,
+  order: 100,
 })
 ```
 
@@ -234,11 +255,12 @@ Priorities: P0 = required for a credible first release; P1 = immediately valuabl
 | Feature | Priority | What it does | Acceptance signal |
 | --- | --- | --- | --- |
 | defineFixture() | P1 | Reusable fixture definition bound to a schema. | Factories stop duplicating schema structure. |
-| Defaults | P1 | Stable domain defaults layered on top of generated fields. | A project can define “normal user” once. |
-| Field generators | P1 | Per-field callbacks receive provider, seed context, index and sibling values when safe. | Domain-specific data remains easy to express. |
-| Sequences | P1 | Incrementing IDs, ordinals or deterministic unique labels. | Fixtures can avoid accidental collisions. |
-| Lifecycle hooks | P2 | before/after generation transforms for advanced cases. | Customisation does not require forking core. |
-| Composition / extend | P2 | Derive adminUser from user etc. | Variants reuse base definitions. |
+| Defaults | P1 | Static values and callbacks layered on top of schema generation. | A project can define “normal user” once. |
+| Variants | P1 | Flat, named single-fixture configurations using the same static values and callbacks as defaults; creation selects at most one. | Reusable fixture intent is statically discoverable without merge precedence. |
+| Derivation | P1 | One atomic callback calculates typed fields from a complete provisional fixture. | Cross-field invariants avoid property-order and partial-object semantics. |
+| Time context | P1 | Every callback in a generation session receives the same deterministic `now`. | Time-relative fixtures remain coherent and reproducible. |
+| Optional policy | P1 | Choose `present` or `omit` across a generation session. | Optional API shapes are explicit and reproducible. |
+| Nullable policy | P1 | Choose `value` or `null` across a generation session. | Nullable API states are explicit and reproducible. |
 
 ### 9.3 Scenarios / application states — v0.3
 
@@ -246,8 +268,7 @@ Priorities: P0 = required for a credible first release; P1 = immediately valuabl
 | --- | --- | --- | --- |
 | Named scenarios | P1 | Define domain states such as failed-payment or empty-account. | Tests can request intent by name. |
 | Scenario overrides | P1 | Scenario can be further overridden per test. | Scenario remains reusable rather than rigid. |
-| Scenario composition | P2 | Compose shared traits such as enterprise + overdue. | Avoid combinatorial fixture duplication. |
-| Time context | P1 | Scenario callbacks receive a deterministic “now”. | Date-sensitive states are reproducible. |
+| Scenario composition | P2 | Build a larger application state from smaller scenario recipes. | Avoid duplicating multi-fixture setup. |
 | Scenario metadata | P2 | Description/tags for tooling and docs. | Adapters can surface human-readable state info. |
 
 ### 9.4 Relations / graph generation — v0.4
@@ -262,13 +283,10 @@ Priorities: P0 = required for a credible first release; P1 = immediately valuabl
 | Cycle detection | P1 | Detect impossible/cyclic fixture dependencies. | Failure is explicit and actionable. |
 | Reference strategy | P2 | Use IDs, embedded objects or custom selectors. | Works across API and DB-shaped domains. |
 
-### 9.5 Edge-case generation — v0.5
+### 9.5 Edge-state generation — later
 
 | Feature | Priority | What it does | Acceptance signal |
 | --- | --- | --- | --- |
-| Boundary mode | P1 | Prefer min/max/empty/maximum-length values. | Tests can exercise boundary behaviour intentionally. |
-| Nullable/optional modes | P1 | Force null, undefined or omission where valid. | Sparse API states are easy to test. |
-| Invalid mode | P2 | Intentionally violate one known constraint and identify it. | Useful for validation/UI error tests. |
 | Unicode / unusual strings | P2 | Generate long names, emoji, RTL/diacritics and whitespace cases. | UI robustness cases become reusable. |
 | Collection extremes | P2 | Empty, one, many and capped arrays. | List states are trivial to produce. |
 
@@ -277,7 +295,7 @@ Priorities: P0 = required for a credible first release; P1 = immediately valuabl
 | Feature | Priority | What it does | Acceptance signal |
 | --- | --- | --- | --- |
 | MSW adapter | P1 | Create response factories/handlers from fixtures and scenarios. | Same domain fixture drives API mocks. |
-| Storybook adapter | P1 | Expose fixture/scenario helpers for stories. | Stories reuse application states instead of custom mock blobs. |
+| Storybook recipe | P1 | Document direct use of fixtures and scenarios in args and loaders. | Stories reuse application states without an integration package. |
 | Playwright adapter | P2 | Deterministic data setup / API responses per test. | E2E failure can be reproduced from seed + scenario. |
 | Vitest/Jest helpers | P2 | Ergonomic per-test fixture setup and seed reporting. | Test failure logs include reproduction data. |
 | OpenAPI input | P2 | Generate response/request data from OpenAPI/JSON Schema. | Teams without Zod can adopt. |
@@ -288,8 +306,6 @@ Priorities: P0 = required for a credible first release; P1 = immediately valuabl
 | Feature | Priority | What it does | Acceptance signal |
 | --- | --- | --- | --- |
 | Custom provider interface | P0 | Swap or augment Faker with custom generators. | Core can evolve independently from Faker. |
-| Custom type handlers | P1 | Register generation logic for domain/schema-specific nodes. | Consumers can support branded/custom types. |
-| Field hints / metadata | P1 | Map schema metadata such as semantic name=email/personName/money. | Schemas can carry generation intent. |
 | Plugin package model | P2 | Adapters and schema libraries live in separate packages. | Core bundle and dependency graph stay small. |
 
 ### 9.8 Developer experience
@@ -310,7 +326,13 @@ Do not begin with universal schema support. Build one excellent adapter, then ge
 
 - Core architecture: normalise supported schema nodes into an internal generation plan rather than scattering Zod-specific logic through the engine.
 
-- v0.2/v0.3: evaluate Standard Schema support or a second adapter such as Valibot to validate the abstraction.
+- After reusable fixture definitions and scenarios are proven, evaluate Standard
+  Schema support or a second adapter such as Valibot to validate the
+  abstraction.
+
+- Broader Zod compatibility is demand-driven rather than a gate for reusable
+  fixture definitions. The current documented subset may ship while unsupported
+  constructs continue to fail explicitly.
 
 - Later: JSON Schema/OpenAPI adapter for API-centric teams.
 
@@ -322,17 +344,25 @@ When several possible generation rules exist, resolve them in a predictable orde
 
 1. Explicit per-call override
 
-1. Scenario override
+1. Derivation output
 
-1. Fixture field generator
+1. Selected variant
 
 1. Fixture default
-
-1. Schema semantic hint/metadata
 
 1. Schema constraint-aware default
 
 1. Provider primitive fallback
+
+Derivation evaluates after defaults, the selected variant and per-call overrides
+have formed a complete provisional fixture. It therefore sees overridden source
+fields, but its output cannot replace a field explicitly overridden by the call.
+A variant cannot define a separate derivation; the fixture definition's single
+derivation runs after the selected variant.
+
+Derivation is a pure calculation over the readonly provisional fixture, session
+`now`, and collection index. It does not receive a provider or random source;
+random and semantic value generation belongs in defaults or variants.
 
 ### 11.2 Randomness
 
@@ -344,7 +374,26 @@ When several possible generation rules exist, resolve them in a predictable orde
 
 ### 11.3 Optional values
 
-Optional/nullable fields require configurable policy. For MVP use conservative defaults (typically present and non-null) so generated fixtures are useful. Later modes can deliberately exercise omission/nullability.
+Optional and nullable fields use separate generation-session policies. Defaults
+are `optionals: "present"` and `nullables: "value"`; callers can select
+`optionals: "omit"` and `nullables: "null"`. Variants and overrides target
+individual fields when a session-wide policy is too broad.
+
+### 11.4 Time
+
+One immutable `now` value belongs to the generation session and is shared by
+fixture defaults, variants, derivation, and scenario orchestration. Generation
+must never read the wall clock independently inside callbacks. When the caller
+does not supply `now`, the session uses the exported, version-stable default
+`2000-01-01T00:00:00.000Z`.
+
+Seed, `now`, and primitive-provider selection belong to the generation session,
+not to fixture definitions. Definitions remain portable across test and adapter
+environments.
+
+Immediate `fixture()` calls and reusable fixture-definition creation share the
+same session options: `seed`, `now`, `provider`, `optionals`, `nullables`, and
+`overrides`. Reusable definitions add only the optional `variant` selection.
 
 ## 12. Proposed package architecture
 
@@ -354,7 +403,6 @@ packages/
   zod/               # Zod adapter
   provider-faker/    # Faker-backed primitive provider
   msw/               # MSW integration
-  storybook/         # Storybook helpers
   playwright/        # E2E helpers (later)
   json-schema/       # JSON Schema/OpenAPI adapter (later)
 ```
@@ -362,6 +410,10 @@ packages/
 - Keep @fixturesmith/core free from Zod, Faker, MSW and Storybook peer dependencies.
 
 - Schema adapters translate into a shared internal representation.
+
+- `@fixturesmith/zod` publicly owns both `fixture()` and the typed
+  `defineFixture()` facade. Core owns their schema-neutral generation-session
+  mechanics.
 
 - Provider packages resolve semantic values; integration packages consume fixtures rather than owning generation logic.
 
@@ -394,7 +446,7 @@ packages/
 
 - Database seeding
 
-- Invalid data generation
+- Invalid data generation through fixture APIs
 
 - CLI
 
@@ -407,11 +459,11 @@ packages/
 | Release | Contents | Purpose |
 | --- | --- | --- |
 | v0.1 — Valid fixtures | Schema generation, constraints, seed, overrides, arrays, provider abstraction. | Prove core DX. |
-| v0.2 — Domain fixtures | defineFixture, defaults, field generators, composition. | Replace hand-written factories. |
-| v0.3 — Scenarios | Named states, deterministic time, scenario composition. | Move from fake data to application states. |
-| v0.4 — Relations | belongsTo/hasMany, graph generation, cardinality, cycle handling. | Generate coherent domain graphs. |
-| v0.5 — Frontend adapters | MSW + Storybook first. | Prove one-source-of-truth value for frontend teams. |
-| v0.6 — Edge cases | Boundary/nullable/invalid modes, Unicode/list extremes. | Strengthen testing use case. |
+| v0.2 — Domain fixtures | `defineFixture`, defaults, variants, derivation, deterministic time, and optional/nullable policies. | Replace hand-written factories. |
+| v0.3 — Scenarios | Fixture sets, named states, and scenario composition. | Move from individual fixtures to application states. |
+| v0.4 — MSW integration | Thin response and handler helpers powered by fixture sets and scenarios. | Prove one application state works across tests and API mocks. |
+| v0.5 — Relations | belongsTo/hasMany, graph generation, cardinality, cycle handling. | Generate coherent domain graphs informed by real integration usage. |
+| v0.6 — Edge states | Unicode strings and collection extremes. | Strengthen testing use cases while preserving schema validity. |
 | v0.7+ — Expansion | Playwright, JSON Schema/OpenAPI, ORM seeds, more schema adapters. | Broaden adoption without bloating core. |
 
 ## 15. MVP acceptance criteria
@@ -490,8 +542,6 @@ For an OSS library, early product metrics should validate usefulness and API qua
 
 ## 20. Open design questions
 
-- Do per-field generator callbacks see sibling fields? This is powerful but introduces ordering semantics.
-
 - How do we preserve stable seeded output when internals change between package versions? We probably guarantee reproducibility within a package version, not forever.
 
 - Should optional fields be present by default, probabilistic, or policy-controlled? MVP should choose predictability over novelty.
@@ -500,41 +550,51 @@ For an OSS library, early product metrics should validate usefulness and API qua
 
 - What minimum relation DSL yields useful graphs without recreating an ORM?
 
-- Should scenarios live on a fixture or at an application-level registry once multi-entity scenarios exist?
-
 ## 21. Recommended product boundary
 
 > **The product is not “modern Faker”.  Its defensible shape is a typed fixture + application-state engine that can use Faker underneath. Schema generation gets users in; scenarios, relations and adapters are what make the project worth adopting.**
 
-The first development milestone should resist the temptation to build relations, adapters or AI. If the one-line schema → fixture experience is not exceptionally good, the higher-level features will amplify a weak foundation. Once v0.1 is solid, the next priority should be defineFixture + scenarios, because that is the point where the project stops looking like another schema faker and starts expressing product state.
+The first development milestone should resist the temptation to build relations,
+adapters or AI. The one-line schema → fixture experience and reusable fixture
+definitions must remain excellent before higher-level features amplify them.
+Once those foundations are solid, the next priority is fixture sets and
+scenarios, where the project begins expressing multi-fixture application state.
 
 ## Appendix A — End-state usage sketch
 
 ```ts
-const app = fixtures({
-  User: defineFixture(UserSchema, {
+const user = defineFixture(UserSchema, {
     defaults: { role: "member" },
-  }),
-
-  Order: defineFixture(OrderSchema, {
-    relations: { userId: belongsTo("User") },
-  }),
 })
 
-app.scenario("customer-with-orders", ({ create }) => {
-  const user = create("User", { plan: "pro" })
-  const orders = create.many("Order", 3, { userId: user.id })
-  return { user, orders }
+const order = defineFixture(OrderSchema)
+
+const commerce = defineFixtureSet({
+  fixtures: { user, order },
+  relations: {
+    order: { userId: belongsTo("user") },
+  },
+  scenarios: {
+    customerWithOrders: ({ create }) => {
+      const customer = create("user", {
+        overrides: { plan: "pro" },
+      })
+      const orders = create.many("order", 3, {
+        overrides: { userId: customer.id },
+      })
+      return { customer, orders }
+    },
+  },
 })
 
 // Unit/component test
-const state = app.createScenario("customer-with-orders", { seed: 42 })
+const state = commerce.createScenario("customerWithOrders", { seed: 42 })
 
 // Storybook/MSW
-export const ProCustomer = app.story("customer-with-orders")
+export const ProCustomer = commerce.story("customerWithOrders")
 
 // Playwright / local test env
-await app.seed("customer-with-orders", { seed: 42 })
+await commerce.seed("customerWithOrders", { seed: 42 })
 ```
 
 Working document: API names are illustrative. The implementation should preserve the product principles even if the final syntax changes.

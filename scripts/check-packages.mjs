@@ -120,14 +120,18 @@ try {
   )
   writeFileSync(
     join(consumerDirectory, "index.ts"),
-    `import { fixture } from "@fixturesmith/zod"
+    `import { defineFixture, fixture } from "@fixturesmith/zod"
 import { z } from "zod"
 
 const User = z.object({ id: z.uuid(), name: z.string().min(3) })
 const user = fixture(User, { overrides: { name: "Ada" }, seed: 42 })
 const users = fixture.many(User, 3, { seed: 42 })
+const userDefinition = defineFixture(User, {
+  variants: { named: { name: "Ada" } },
+})
+const named = userDefinition.create({ seed: 42, variant: "named" })
 
-if (user.name !== "Ada" || users.length !== 3) {
+if (user.name !== "Ada" || users.length !== 3 || named.name !== "Ada") {
   throw new Error("Packed package consumer assertion failed.")
 }
 `,

@@ -1,5 +1,7 @@
 import {
+  DEFAULT_NOW,
   FixtureValidationError,
+  InvalidFixtureOptionsError,
   InvalidSchemaConstraintError,
   ProviderError,
   UnsupportedSchemaError,
@@ -330,6 +332,89 @@ describe("fixture", () => {
         seed: 42,
       }),
     ).toEqual({ nullable: null, optional: undefined })
+
+    expect(
+      fixture(z.string().optional(), { overrides: undefined, seed: 42 }),
+    ).toBeUndefined()
+  })
+
+  it("applies explicit optional and nullable policies", () => {
+    const Schema = z.object({
+      nullable: z.string().nullable(),
+      optional: z.string().optional(),
+      optionalNullable: z.string().optional().nullable(),
+      required: z.string(),
+    })
+
+    const value = fixture(Schema, {
+      nullables: "null",
+      optionals: "omit",
+      seed: 42,
+    })
+
+    expect(value).toMatchObject({ nullable: null })
+    expect(value.required).toBeTypeOf("string")
+    expect(Object.hasOwn(value, "optional")).toBe(false)
+    expect(Object.hasOwn(value, "optionalNullable")).toBe(false)
+  })
+
+  it("lets explicit overrides win over optional and nullable policies", () => {
+    const Schema = z.object({
+      nullable: z.string().nullable(),
+      optional: z.string().optional(),
+    })
+
+    expect(
+      fixture(Schema, {
+        nullables: "null",
+        optionals: "omit",
+        overrides: { nullable: "set", optional: "present" },
+        seed: 42,
+      }),
+    ).toEqual({ nullable: "set", optional: "present" })
+  })
+
+  it("provides one stable instant to isolated callback contexts", () => {
+    const Schema = z.object({ first: z.date(), second: z.date() })
+    const seen: number[] = []
+
+    fixture(Schema, {
+      overrides: {
+        first: ({ now }) => {
+          seen.push(now.getTime())
+          now.setUTCFullYear(1900)
+          return new Date(0)
+        },
+        second: ({ now }) => {
+          seen.push(now.getTime())
+          return new Date(0)
+        },
+      },
+      seed: 42,
+    })
+
+    expect(seen).toEqual([Date.parse(DEFAULT_NOW), Date.parse(DEFAULT_NOW)])
+  })
+
+  it("accepts an explicit generation-session instant", () => {
+    const now = new Date("2026-08-12T12:00:00.000Z")
+
+    expect(
+      fixture(z.date(), {
+        now,
+        overrides: ({ now: callbackNow }) => callbackNow,
+      }),
+    ).toEqual(now)
+  })
+
+  it.each([
+    { now: new Date(Number.NaN) },
+    { nullables: "sometimes" },
+    { optionals: "sometimes" },
+  ])("rejects invalid session options %#", (options) => {
+    expect(() => fixture(z.string(), options as never)).toThrowError(
+      InvalidFixtureOptionsError,
+    )
   })
 
   it("generates deterministic collections", () => {

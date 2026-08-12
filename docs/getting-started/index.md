@@ -24,6 +24,23 @@ Use `fixture.many(schema, count, options?)`, passing custom values through
 `options.overrides`. Every item has an index-isolated random stream, so changing
 one item's callback does not perturb the others.
 
+## Define a reusable fixture
+
+Use `defineFixture(schema, config?)` when tests share domain defaults or named
+variants. The definition remains bound to its source schema, so `create()` and
+`many()` retain the inferred Zod output type.
+
+```ts
+const user = defineFixture(User, {
+  defaults: { role: "member" },
+  variants: {
+    admin: { role: "admin" },
+  },
+})
+
+user.create({ variant: "admin", seed: 42 })
+```
+
 ## Next steps
 
 - [Use deep and callback overrides](../guides/overrides.md)

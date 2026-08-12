@@ -256,7 +256,7 @@ Reject or defer implementation work involving:
 - scenarios or deterministic scenario time
 - relationships and graph generation
 - MSW, Storybook, Playwright, or ORM adapters
-- invalid, sparse, boundary, or Unicode modes
+- sparse or Unicode modes, or separate invalid/boundary case generation
 - a second schema adapter
 - schema caching or performance benchmarks without evidence
 - CLI, network services, AI, or GUI work

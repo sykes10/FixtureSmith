@@ -111,7 +111,9 @@ Conservative defaults make ordinary fixtures useful:
 - optional-and-nullable values are present and non-null.
 
 Users can explicitly override a supported property to `undefined` or `null` when
-the inferred output type allows it. Sparse/null/boundary modes are deferred.
+the inferred output type allows it. Generation sessions can also select
+`optionals: "omit"` or `nullables: "null"`; explicit overrides take precedence.
+Automatic boundary cases remain outside the fixture API.
 
 For object output, an override of `undefined` follows Zod's parsed output
 semantics. FixtureSmith does not independently promise whether the key remains

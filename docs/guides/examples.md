@@ -6,7 +6,7 @@ snippets.
 
 | Example | Demonstrates | Run locally |
 | --- | --- | --- |
-| `basic` | One fixture, an override, and `many()` | `pnpm --filter @fixturesmith-example/basic check` |
+| `basic` | Immediate generation, `many()`, and a reusable definition | `pnpm --filter @fixturesmith-example/basic check` |
 | `overrides` | Deep static and callback overrides | `pnpm --filter @fixturesmith-example/overrides check` |
 | `vitest` | A replayable fixture in a real test | `pnpm --filter @fixturesmith-example/vitest check` |
 | `custom-provider` | Replacing Faker through the provider contract | `pnpm --filter @fixturesmith-example/custom-provider check` |
