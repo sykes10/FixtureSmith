@@ -20,9 +20,9 @@ fixture on the same FixtureSmith version.
 
 ## Generate a collection
 
-Use `fixture.many(schema, count, overrides?, options?)`. Every item has an
-index-isolated random stream, so changing one item's callback does not perturb
-the others.
+Use `fixture.many(schema, count, options?)`, passing custom values through
+`options.overrides`. Every item has an index-isolated random stream, so changing
+one item's callback does not perturb the others.
 
 ## Next steps
 

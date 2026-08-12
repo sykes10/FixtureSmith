@@ -13,6 +13,6 @@ const provider: PrimitiveProvider = {
 }
 
 const Example = z.object({ id: z.uuid(), email: z.email() })
-const value = fixture(Example, undefined, { provider, seed: 42 })
+const value = fixture(Example, { provider, seed: 42 })
 
 console.log(value)

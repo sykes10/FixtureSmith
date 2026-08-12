@@ -20,7 +20,7 @@ describe("fixture", () => {
   })
 
   it("generates a value accepted by its schema", () => {
-    const user = fixture(User, undefined, { seed: 42 })
+    const user = fixture(User, { seed: 42 })
 
     expect(User.safeParse(user).success).toBe(true)
     expect(user.name).not.toHaveLength(0)
@@ -28,13 +28,11 @@ describe("fixture", () => {
   })
 
   it("replays the same complete object from the same seed", () => {
-    expect(fixture(User, undefined, { seed: 42 })).toEqual(
-      fixture(User, undefined, { seed: 42 }),
-    )
+    expect(fixture(User, { seed: 42 })).toEqual(fixture(User, { seed: 42 }))
   })
 
   it("infers the Zod output type", () => {
-    const user = fixture(User, undefined, { seed: 42 })
+    const user = fixture(User, { seed: 42 })
 
     expectTypeOf(user).toEqualTypeOf<z.output<typeof User>>()
   })
@@ -49,7 +47,7 @@ describe("fixture", () => {
         name: z.string().min(8).max(12),
       })
 
-      const value = fixture(Schema, undefined, { seed })
+      const value = fixture(Schema, { seed })
 
       expect(Schema.safeParse(value).success).toBe(true)
       expect(value.email).toHaveLength(24)
@@ -67,23 +65,21 @@ describe("fixture", () => {
       id: z.uuid(),
     })
 
-    expect(fixture(Schema, undefined, { seed: "semantic" })).toEqual(
-      fixture(Schema, undefined, { seed: "semantic" }),
+    expect(fixture(Schema, { seed: "semantic" })).toEqual(
+      fixture(Schema, { seed: "semantic" }),
     )
   })
 
   it("supports string-attached semantic formats", () => {
     const Schema = z.object({ email: z.string().email() })
 
-    expect(
-      Schema.safeParse(fixture(Schema, undefined, { seed: 42 })).success,
-    ).toBe(true)
+    expect(Schema.safeParse(fixture(Schema, { seed: 42 })).success).toBe(true)
   })
 
   it("generates the empty string when it is the only valid length", () => {
     const Schema = z.object({ empty: z.string().length(0) })
 
-    expect(fixture(Schema, undefined, { seed: 42 })).toEqual({ empty: "" })
+    expect(fixture(Schema, { seed: 42 })).toEqual({ empty: "" })
   })
 
   it("keeps permissive maximum-only collections usefully small", () => {
@@ -91,7 +87,7 @@ describe("fixture", () => {
       names: z.array(z.string()).max(1_000_000),
       text: z.string().max(1_000_000),
     })
-    const value = fixture(Schema, undefined, { seed: 42 })
+    const value = fixture(Schema, { seed: 42 })
 
     expect(value.names.length).toBeLessThanOrEqual(3)
     expect(value.text.length).toBeLessThanOrEqual(16)
@@ -101,7 +97,7 @@ describe("fixture", () => {
   it("rejects impossible string constraints with their path", () => {
     const Schema = z.object({ id: z.uuid().max(35) })
 
-    expect(() => fixture(Schema, undefined, { seed: 42 })).toThrowError(
+    expect(() => fixture(Schema, { seed: 42 })).toThrowError(
       expect.objectContaining({
         code: "INVALID_SCHEMA_CONSTRAINT",
         path: ["id"],
@@ -112,7 +108,7 @@ describe("fixture", () => {
   it("rejects unsupported string formats with their path", () => {
     const Schema = z.object({ address: z.ipv4() })
 
-    expect(() => fixture(Schema, undefined, { seed: 42 })).toThrowError(
+    expect(() => fixture(Schema, { seed: 42 })).toThrowError(
       expect.objectContaining({
         code: "UNSUPPORTED_SCHEMA",
         path: ["address"],
@@ -135,7 +131,7 @@ describe("fixture", () => {
         role: z.enum(["admin", "member", "viewer"]),
       })
 
-      const value = fixture(Schema, undefined, { seed })
+      const value = fixture(Schema, { seed })
 
       expect(Schema.safeParse(value).success).toBe(true)
       expect(Number.isInteger(value.count)).toBe(true)
@@ -153,7 +149,7 @@ describe("fixture", () => {
       value: z.number().min(3.5).max(3.5),
     })
 
-    expect(fixture(Schema, undefined, { seed: 42 })).toEqual({
+    expect(fixture(Schema, { seed: 42 })).toEqual({
       count: 7,
       instant,
       value: 3.5,
@@ -164,7 +160,7 @@ describe("fixture", () => {
     const minimum = new Date(8_639_999_999_999_000)
     const Schema = z.date().min(minimum)
 
-    const value = fixture(Schema, undefined, { seed: 42 })
+    const value = fixture(Schema, { seed: 42 })
 
     expect(Number.isNaN(value.getTime())).toBe(false)
     expect(value.getTime()).toBeGreaterThanOrEqual(minimum.getTime())
@@ -174,7 +170,7 @@ describe("fixture", () => {
   it("rejects non-finite numeric boundaries", () => {
     const Schema = z.number().min(Number.POSITIVE_INFINITY)
 
-    expect(() => fixture(Schema, undefined, { seed: 42 })).toThrowError(
+    expect(() => fixture(Schema, { seed: 42 })).toThrowError(
       expect.objectContaining({
         code: "INVALID_SCHEMA_CONSTRAINT",
         path: [],
@@ -190,16 +186,14 @@ describe("fixture", () => {
     const Schema = z.object({ role: z.enum(Role) })
 
     for (let seed = 0; seed < 20; seed += 1) {
-      expect(
-        Schema.safeParse(fixture(Schema, undefined, { seed })).success,
-      ).toBe(true)
+      expect(Schema.safeParse(fixture(Schema, { seed })).success).toBe(true)
     }
   })
 
   it("rejects integer ranges containing no integer", () => {
     const Schema = z.object({ value: z.number().int().gt(1).lt(2) })
 
-    expect(() => fixture(Schema, undefined, { seed: 42 })).toThrowError(
+    expect(() => fixture(Schema, { seed: 42 })).toThrowError(
       expect.objectContaining({
         code: "INVALID_SCHEMA_CONSTRAINT",
         path: [0, "value"],
@@ -210,7 +204,7 @@ describe("fixture", () => {
   it("rejects unsupported numeric checks", () => {
     const Schema = z.object({ value: z.number().multipleOf(5) })
 
-    expect(() => fixture(Schema, undefined, { seed: 42 })).toThrowError(
+    expect(() => fixture(Schema, { seed: 42 })).toThrowError(
       expect.objectContaining({
         code: "UNSUPPORTED_SCHEMA",
         path: ["value"],
@@ -229,7 +223,7 @@ describe("fixture", () => {
         }),
       })
 
-      const value = fixture(Schema, undefined, { seed })
+      const value = fixture(Schema, { seed })
 
       expect(Schema.safeParse(value).success).toBe(true)
       expect(value.aliases.length).toBeGreaterThanOrEqual(2)
@@ -245,7 +239,7 @@ describe("fixture", () => {
       exact: z.array(z.number()).length(3),
     })
 
-    const value = fixture(Schema, undefined, { seed: 42 })
+    const value = fixture(Schema, { seed: 42 })
 
     expect(value.empty).toEqual([])
     expect(value.exact).toHaveLength(3)
@@ -274,7 +268,7 @@ describe("fixture", () => {
       verified: z.boolean().optional(),
     })
 
-    const value = fixture(Schema, undefined, { seed: "acceptance" })
+    const value = fixture(Schema, { seed: "acceptance" })
 
     expect(Schema.safeParse(value).success).toBe(true)
     expect(value.profile.homepage).not.toBeNull()
@@ -290,15 +284,14 @@ describe("fixture", () => {
       }),
       roles: z.array(z.enum(["admin", "member"])),
     })
-    const generated = fixture(Schema, undefined, { seed: 42 })
-    const overridden = fixture(
-      Schema,
-      {
+    const generated = fixture(Schema, { seed: 42 })
+    const overridden = fixture(Schema, {
+      overrides: {
         profile: { displayName: "Ada" },
         roles: ["admin"],
       },
-      { seed: 42 },
-    )
+      seed: 42,
+    })
 
     expect(overridden).toMatchObject({
       id: generated.id,
@@ -317,8 +310,8 @@ describe("fixture", () => {
         `${index}-${path.at(-1)}-${provider.uuid()}@example.test`,
     }
 
-    const first = fixture(Schema, overrides, { seed: 42 })
-    const second = fixture(Schema, overrides, { seed: 42 })
+    const first = fixture(Schema, { overrides, seed: 42 })
+    const second = fixture(Schema, { overrides, seed: 42 })
 
     expect(first).toEqual(second)
     expect(first.email).toMatch(/^0-email-/)
@@ -332,15 +325,18 @@ describe("fixture", () => {
     })
 
     expect(
-      fixture(Schema, { nullable: null, optional: undefined }, { seed: 42 }),
+      fixture(Schema, {
+        overrides: { nullable: null, optional: undefined },
+        seed: 42,
+      }),
     ).toEqual({ nullable: null, optional: undefined })
   })
 
   it("generates deterministic collections", () => {
     const Schema = z.object({ id: z.uuid(), name: z.string() })
 
-    const first = fixture.many(Schema, 100, undefined, { seed: 42 })
-    const second = fixture.many(Schema, 100, undefined, { seed: 42 })
+    const first = fixture.many(Schema, 100, { seed: 42 })
+    const second = fixture.many(Schema, 100, { seed: 42 })
 
     expect(first).toEqual(second)
     expect(first).toHaveLength(100)
@@ -353,8 +349,8 @@ describe("fixture", () => {
       tags: z.array(z.string()).min(1).max(4),
     })
 
-    expect(fixture(Schema, undefined, { seed: 42 })).toEqual(
-      fixture.many(Schema, 1, undefined, { seed: 42 })[0],
+    expect(fixture(Schema, { seed: 42 })).toEqual(
+      fixture.many(Schema, 1, { seed: 42 })[0],
     )
   })
 
@@ -362,8 +358,8 @@ describe("fixture", () => {
     const Short = z.object({ tags: z.array(z.string()).length(2) })
     const Long = z.object({ tags: z.array(z.string()).length(4) })
 
-    expect(fixture(Long, undefined, { seed: 42 }).tags.slice(0, 2)).toEqual(
-      fixture(Short, undefined, { seed: 42 }).tags,
+    expect(fixture(Long, { seed: 42 }).tags.slice(0, 2)).toEqual(
+      fixture(Short, { seed: 42 }).tags,
     )
   })
 
@@ -371,20 +367,18 @@ describe("fixture", () => {
     const Before = z.object({ name: z.string() })
     const After = z.object({ email: z.email(), name: z.string() })
 
-    expect(fixture(After, undefined, { seed: 42 }).name).toBe(
-      fixture(Before, undefined, { seed: 42 }).name,
+    expect(fixture(After, { seed: 42 }).name).toBe(
+      fixture(Before, { seed: 42 }).name,
     )
   })
 
   it("passes collection indexes to callback overrides", () => {
     const Schema = z.object({ label: z.string() })
 
-    const values = fixture.many(
-      Schema,
-      3,
-      { label: ({ index }) => `item-${index}` },
-      { seed: 42 },
-    )
+    const values = fixture.many(Schema, 3, {
+      overrides: { label: ({ index }) => `item-${index}` },
+      seed: 42,
+    })
 
     expect(values).toEqual([
       { label: "item-0" },
@@ -398,9 +392,11 @@ describe("fixture", () => {
     let invocations = 0
 
     fixture.many(Schema, 5, {
-      label: ({ index }) => {
-        invocations += 1
-        return `item-${index}`
+      overrides: {
+        label: ({ index }) => {
+          invocations += 1
+          return `item-${index}`
+        },
       },
     })
 
@@ -427,7 +423,10 @@ describe("fixture", () => {
     const Schema = z.object({ email: z.email() })
 
     try {
-      fixture(Schema, { email: "invalid" as never }, { seed: 42 })
+      fixture(Schema, {
+        overrides: { email: "invalid" as never },
+        seed: 42,
+      })
       expect.unreachable("fixture should fail validation")
     } catch (error) {
       if (!(error instanceof FixtureValidationError)) throw error
@@ -446,12 +445,12 @@ describe("fixture", () => {
     const Schema = z.object({ email: z.email() })
 
     try {
-      fixture.many(
-        Schema,
-        3,
-        { email: ({ index }) => (index === 1 ? "invalid" : "ok@example.test") },
-        { seed: 42 },
-      )
+      fixture.many(Schema, 3, {
+        overrides: {
+          email: ({ index }) => (index === 1 ? "invalid" : "ok@example.test"),
+        },
+        seed: 42,
+      })
       expect.unreachable("fixture collection should fail validation")
     } catch (error) {
       if (!(error instanceof FixtureValidationError)) throw error
@@ -477,7 +476,7 @@ describe("fixture", () => {
     }
 
     try {
-      fixture(z.string(), undefined, { provider: throwingProvider, seed: 42 })
+      fixture(z.string(), { provider: throwingProvider, seed: 42 })
       expect.unreachable("provider should fail")
     } catch (error) {
       if (!(error instanceof ProviderError)) throw error
@@ -508,8 +507,8 @@ describe("fixture", () => {
       url: z.url(),
     })
 
-    const first = fixture(Schema, undefined, { provider, seed: 42 })
-    const second = fixture(Schema, undefined, { provider, seed: 42 })
+    const first = fixture(Schema, { provider, seed: 42 })
+    const second = fixture(Schema, { provider, seed: 42 })
 
     expect(first).toEqual(second)
     expect(Schema.safeParse(first).success).toBe(true)
@@ -522,7 +521,7 @@ describe("fixture", () => {
     z.date().refine((value) => value.getUTCFullYear() === 2020),
     z.object({ value: z.string() }).refine(({ value }) => value === "allowed"),
   ])("rejects opaque checks instead of retrying", (Schema) => {
-    expect(() => fixture(Schema, undefined, { seed: 42 })).toThrowError(
+    expect(() => fixture(Schema, { seed: 42 })).toThrowError(
       expect.objectContaining({
         code: "UNSUPPORTED_SCHEMA",
       }) as UnsupportedSchemaError,
@@ -538,8 +537,7 @@ describe("fixture", () => {
       scores: z.array(z.number().int().min(0).max(10)).length(2),
     })
 
-    expect(fixture(Schema, undefined, { seed: "golden-v0.1" }))
-      .toMatchInlineSnapshot(`
+    expect(fixture(Schema, { seed: "golden-v0.1" })).toMatchInlineSnapshot(`
       {
         "active": false,
         "email": "Carolyn36@yahoo.com",

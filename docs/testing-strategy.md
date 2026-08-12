@@ -53,9 +53,9 @@ Exercise only package exports:
 
 ```ts
 fixture(schema)
-fixture(schema, overrides)
-fixture(schema, overrides, { seed })
-fixture.many(schema, count, overrides, { seed })
+fixture(schema, { overrides })
+fixture(schema, { overrides, seed })
+fixture.many(schema, count, { overrides, seed })
 ```
 
 These tests cover the PRD acceptance criteria and should read like documentation.

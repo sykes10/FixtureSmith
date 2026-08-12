@@ -62,13 +62,13 @@ information rather than simple string joining.
 Single-value generation uses logical item index zero. Therefore:
 
 ```ts
-fixture(Schema, overrides, { seed })
+fixture(Schema, { overrides, seed })
 ```
 
 must equal:
 
 ```ts
-fixture.many(Schema, 1, overrides, { seed })[0]
+fixture.many(Schema, 1, { overrides, seed })[0]
 ```
 
 This equivalence is part of the API contract and must have a golden test.

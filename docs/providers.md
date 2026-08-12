@@ -22,7 +22,7 @@ const provider: PrimitiveProvider = {
   },
 }
 
-const value = fixture(Schema, undefined, {
+const value = fixture(Schema, {
   provider,
   seed: 42,
 })

@@ -19,8 +19,7 @@ adapter; avoid exposing implementation details prematurely.
 ```ts
 function fixture<S extends z.ZodType>(
   schema: S,
-  overrides?: FixtureOverrides<z.output<S>>,
-  options?: FixtureOptions,
+  options?: FixtureOptions<S>,
 ): z.output<S>
 ```
 
@@ -30,10 +29,12 @@ Examples:
 const user = fixture(UserSchema)
 
 const admin = fixture(UserSchema, {
-  role: "admin",
+  overrides: {
+    role: "admin",
+  },
 })
 
-const replayed = fixture(UserSchema, undefined, {
+const replayed = fixture(UserSchema, {
   seed: 1_234,
 })
 ```
@@ -52,15 +53,15 @@ with a typed runtime error.
 fixture.many<S extends z.ZodType>(
   schema: S,
   count: number,
-  overrides?: FixtureOverrides<z.output<S>>,
-  options?: FixtureOptions,
+  options?: FixtureOptions<S>,
 ): Array<z.output<S>>
 ```
 
 ```ts
 const users = fixture.many(UserSchema, 20, {
-  role: "member",
-}, {
+  overrides: {
+    role: "member",
+  },
   seed: 42,
 })
 ```
@@ -77,7 +78,8 @@ Rules:
 ## Options
 
 ```ts
-interface FixtureOptions {
+interface FixtureOptions<S extends z.ZodType> {
+  overrides?: FixtureOverrides<z.output<S>>
   seed?: SeedInput
   provider?: PrimitiveProvider
 }
@@ -119,9 +121,11 @@ instantiation depth.
 
 ```ts
 const user = fixture(UserSchema, {
-  role: "admin",
-  profile: {
-    displayName: "Ada",
+  overrides: {
+    role: "admin",
+    profile: {
+      displayName: "Ada",
+    },
   },
 })
 ```
@@ -132,9 +136,12 @@ Only `profile.displayName` is supplied. Other `profile` fields are generated.
 
 ```ts
 const users = fixture.many(UserSchema, 3, {
-  email: ({ index, provider }) =>
-    `user-${index}-${provider.uuid()}@example.test`,
-}, { seed: 42 })
+  overrides: {
+    email: ({ index, provider }) =>
+      `user-${index}-${provider.uuid()}@example.test`,
+  },
+  seed: 42,
+})
 ```
 
 The callback API exposes a narrow deterministic context:
@@ -172,7 +179,7 @@ FixtureValidationError with path and seed context.
 ## Provider customization
 
 ```ts
-const user = fixture(UserSchema, undefined, {
+const user = fixture(UserSchema, {
   seed: "checkout-empty-state",
   provider: myProvider,
 })

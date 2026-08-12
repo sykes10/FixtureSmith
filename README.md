@@ -41,9 +41,12 @@ const User = z.object({
   age: z.number().int().min(18).max(100),
 })
 
-const user = fixture(User, undefined, { seed: 42 })
-const admin = fixture(User, { name: "Ada" }, { seed: 42 })
-const users = fixture.many(User, 20, undefined, { seed: 42 })
+const user = fixture(User, { seed: 42 })
+const admin = fixture(User, {
+  seed: 42,
+  overrides: { name: "Ada" },
+})
+const users = fixture.many(User, 20, { seed: 42 })
 ```
 
 Every generated result is parsed by its source schema. The same FixtureSmith
@@ -60,10 +63,12 @@ const users = fixture.many(
   User,
   3,
   {
-    email: ({ index, provider }) =>
-      `user-${index}-${provider.uuid()}@example.test`,
+    seed: "users",
+    overrides: {
+      email: ({ index, provider }) =>
+        `user-${index}-${provider.uuid()}@example.test`,
+    },
   },
-  { seed: "users" },
 )
 ```
 

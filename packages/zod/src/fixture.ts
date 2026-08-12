@@ -14,11 +14,6 @@ import { z } from "zod"
 
 import { normalizeZodSchema } from "./normalize.js"
 
-export interface FixtureOptions {
-  readonly provider?: PrimitiveProvider
-  readonly seed?: SeedInput
-}
-
 type AtomicFixtureValue = Date | readonly unknown[]
 type FixtureValueOverride<T> = T | FixtureCallback<T>
 
@@ -29,30 +24,32 @@ export type FixtureOverrides<T> = T extends AtomicFixtureValue
       | FixtureCallback<T>
     : FixtureValueOverride<T>
 
+export interface FixtureOptions<S extends z.ZodType> {
+  readonly overrides?: FixtureOverrides<z.output<S>>
+  readonly provider?: PrimitiveProvider
+  readonly seed?: SeedInput
+}
+
 export interface FixtureFunction {
-  <S extends z.ZodType>(
-    schema: S,
-    overrides?: FixtureOverrides<z.output<S>>,
-    options?: FixtureOptions,
-  ): z.output<S>
+  <S extends z.ZodType>(schema: S, options?: FixtureOptions<S>): z.output<S>
 
   many<S extends z.ZodType>(
     schema: S,
     count: number,
-    overrides?: FixtureOverrides<z.output<S>>,
-    options?: FixtureOptions,
+    options?: FixtureOptions<S>,
   ): Array<z.output<S>>
 }
 
 function createFixture<S extends z.ZodType>(
   schema: S,
-  overrides?: FixtureOverrides<z.output<S>>,
-  options: FixtureOptions = {},
+  options: FixtureOptions<S> = {},
 ): z.output<S> {
   const node = normalizeZodSchema(schema)
   const result = generateResult(node, {
     provider: options.provider ?? new FakerProvider(),
-    ...(overrides === undefined ? {} : { overrides }),
+    ...(options.overrides === undefined
+      ? {}
+      : { overrides: options.overrides }),
     ...(options.seed === undefined ? {} : { seed: options.seed }),
   })
 
@@ -62,8 +59,7 @@ function createFixture<S extends z.ZodType>(
 function createManyFixtures<S extends z.ZodType>(
   schema: S,
   count: number,
-  overrides?: FixtureOverrides<z.output<S>>,
-  options: FixtureOptions = {},
+  options: FixtureOptions<S> = {},
 ): Array<z.output<S>> {
   assertValidFixtureCount(count)
   if (count === 0) return []
@@ -71,7 +67,9 @@ function createManyFixtures<S extends z.ZodType>(
   const node = normalizeZodSchema(schema)
   const result = generateManyResult(node, count, {
     provider: options.provider ?? new FakerProvider(),
-    ...(overrides === undefined ? {} : { overrides }),
+    ...(options.overrides === undefined
+      ? {}
+      : { overrides: options.overrides }),
     ...(options.seed === undefined ? {} : { seed: options.seed }),
   })
 

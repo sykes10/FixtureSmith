@@ -63,7 +63,7 @@ Implement the smallest complete vertical slice:
 
 ```ts
 const schema = z.object({ name: z.string() })
-const value = fixture(schema, undefined, { seed: 42 })
+const value = fixture(schema, { seed: 42 })
 schema.parse(value)
 ```
 

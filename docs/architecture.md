@@ -70,7 +70,7 @@ before changing this decision. Zero-configuration behavior is an MVP goal.
 ## Generation pipeline
 
 ```text
-fixture(schema, overrides, options)
+fixture(schema, { overrides, ...options })
   1. Normalize Zod schema into core IR
   2. Create generation session from root seed and options
   3. Walk IR recursively

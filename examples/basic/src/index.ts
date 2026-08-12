@@ -9,8 +9,11 @@ const User = z.object({
   role: z.enum(["admin", "member"]),
 })
 
-const user = fixture(User, { role: "admin" }, { seed: "readme-demo" })
-const users = fixture.many(User, 3, undefined, { seed: "team-demo" })
+const user = fixture(User, {
+  overrides: { role: "admin" },
+  seed: "readme-demo",
+})
+const users = fixture.many(User, 3, { seed: "team-demo" })
 
 console.log("One fixture:", user)
 console.log("Three fixtures:", users)

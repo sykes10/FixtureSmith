@@ -39,7 +39,7 @@ const User = z.object({
   age: z.number().int().min(18).max(100),
 })
 
-const user = fixture(User, undefined, { seed: "docs" })
+const user = fixture(User, { seed: "docs" })
 ```
 
 FixtureSmith is currently preparing its first `0.1.0` release. The supported

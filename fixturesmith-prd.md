@@ -132,25 +132,29 @@ const User = z.object({
 })
 
 const user = fixture(User)
-const users = fixture(User).many(20)
+const users = fixture.many(User, 20)
 ```
 
 ### 8.2 Overrides
 
 ```ts
 const admin = fixture(User, {
-  role: "admin",
+  overrides: {
+    role: "admin",
+  },
 })
 
-const users = fixture(User).many(10, {
-  role: "member",
+const users = fixture.many(User, 10, {
+  overrides: {
+    role: "member",
+  },
 })
 ```
 
 ### 8.3 Reproducible generation
 
 ```ts
-const user = fixture(User).seed(1234)
+const user = fixture(User, { seed: 1234 })
 
 // same schema + same seed => same generated result
 ```
@@ -416,11 +420,11 @@ packages/
 
 - The return type is inferred without manual generic parameters or casts.
 
-- fixture(schema).seed(123) returns identical output across repeated calls on the same package version.
+- `fixture(schema, { seed: 123 })` returns identical output across repeated calls on the same package version.
 
 - A user can override one nested field without manually providing unrelated required fields.
 
-- many(100) returns 100 valid values and respects the same seed semantics.
+- `fixture.many(schema, 100, { seed })` returns 100 valid values and respects the same seed semantics.
 
 - Email/UUID/URL/date and numeric/string constraints use sensible values rather than arbitrary placeholders.
 
@@ -479,14 +483,12 @@ For an OSS library, early product metrics should validate usefulness and API qua
 | EPIC 3 | Zod adapter | Translate supported Zod nodes into generation plan/IR; compatibility tests. |
 | EPIC 4 | Primitive generation | String/number/boolean/date/enum/literal/optional/nullable/array/object handlers. |
 | EPIC 5 | Provider layer | Provider contract; Faker provider; semantic hint resolution. |
-| EPIC 6 | Public fixture API | fixture(), many(), seed(), overrides; type tests. |
+| EPIC 6 | Public fixture API | `fixture()`, `fixture.many()`, named options, seed, overrides; type tests. |
 | EPIC 7 | Errors & diagnostics | UnsupportedNodeError, path, schema kind, docs link/hint. |
 | EPIC 8 | Quality | Golden determinism tests; schema validation property tests; Node/version matrix. |
 | EPIC 9 | Docs | Getting started; recipes; limitations; architecture; “Faker vs this project”. |
 
 ## 20. Open design questions
-
-- Should fixture(schema, overrides) be the canonical function, or should fixture(schema) return a builder? The simple call-site must stay excellent either way.
 
 - Do per-field generator callbacks see sibling fields? This is powerful but introduces ordering semantics.
 
