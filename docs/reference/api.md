@@ -69,6 +69,59 @@ const booking = defineFixture(BookingSchema, {
 })
 ```
 
+## `defineFixtureSet()`
+
+```ts
+const commerce = defineFixtureSet({
+  fixtures: { customer, order },
+  scenarios: {
+    customerWithOrders: ({ create }) => {
+      const account = create("customer", { variant: "pro" })
+      return {
+        account,
+        orders: create.many("order", 3, {
+          overrides: { customerId: account.id },
+        }),
+      }
+    },
+  },
+})
+
+commerce.createScenario("customerWithOrders", { seed: 42 })
+commerce.fixtures.customer.create({ seed: 42 })
+```
+
+A fixture set is an immutable composition of fixture definitions and scenarios.
+`createScenario` returns exactly what the recipe returned.
+
+Every fixture created by one `createScenario` call shares one generation
+session, so `seed`, `now`, `provider`, `optionals`, and `nullables` belong to
+`createScenario` rather than to the individual `create()` calls. Each call
+derives its own seed from the session root seed, the scenario name, and its
+position in the recipe.
+
+### Scenario context
+
+```ts
+interface ScenarioContext<F> {
+  readonly create: ScenarioCreate<F>
+  readonly now: Date
+  readonly seed: NormalizedSeed
+}
+```
+
+`create(name, options?)` and `create.many(name, count, options?)` accept only
+`overrides` and `variant`. Recipes compose by calling another `ScenarioRecipe`
+with the same context.
+
+### Scenario options
+
+`createScenario(name, options?)` accepts the session options above plus
+`overrides` keyed by fixture name. Those overrides apply to every fixture of
+that name in the recipe and take precedence over the recipe's own overrides.
+
+See the [scenarios guide](../guides/scenarios.md).
+
 ## Errors
 
 The Zod facade exports `FixtureError` and every concrete error class. Consumers

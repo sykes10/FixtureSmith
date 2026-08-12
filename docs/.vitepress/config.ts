@@ -48,6 +48,7 @@ export default defineConfig({
         items: [
           { text: "Runnable examples", link: "/guides/examples" },
           { text: "Overrides", link: "/guides/overrides" },
+          { text: "Scenarios", link: "/guides/scenarios" },
           { text: "Testing with seeds", link: "/guides/testing" },
           { text: "Custom providers", link: "/providers" },
         ],
