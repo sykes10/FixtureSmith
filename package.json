@@ -21,7 +21,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs",
     "demo:basic": "pnpm build && pnpm --filter @fixturesmith-example/basic demo",
-    "examples:check": "pnpm build && pnpm --filter './examples/*' check",
+    "examples:check": "pnpm build && pnpm --filter \"./examples/*\" check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
