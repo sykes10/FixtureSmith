@@ -9,8 +9,8 @@ const User = z.object({
 })
 
 it("replays a valid user from the failure seed", () => {
-  const first = fixture(User, undefined, { seed: "checkout-regression" })
-  const replay = fixture(User, undefined, { seed: "checkout-regression" })
+  const first = fixture(User, { seed: "checkout-regression" })
+  const replay = fixture(User, { seed: "checkout-regression" })
 
   expect(User.safeParse(first).success).toBe(true)
   expect(replay).toEqual(first)

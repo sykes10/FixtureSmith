@@ -20,12 +20,21 @@ import {
 
 export interface GenerateOptions {
   readonly index?: number
+  readonly now?: Date
+  readonly nullables?: NullablePolicy
+  readonly optionals?: OptionalPolicy
   readonly overrides?: unknown
   readonly provider: PrimitiveProvider
   readonly seed?: SeedInput
 }
 
+export type NullablePolicy = "value" | "null"
+export type OptionalPolicy = "present" | "omit"
+
+export const DEFAULT_NOW = "2000-01-01T00:00:00.000Z"
+
 export interface GenerationResult<T = unknown> {
+  readonly now: Date
   readonly seed: NormalizedSeed
   readonly value: T
 }
@@ -43,9 +52,11 @@ export function generateResult(
 ): GenerationResult {
   const rootSeed = resolveRootSeed(options.seed)
   const index = options.index ?? 0
+  const session = createGenerationSession(options, rootSeed)
   return {
+    now: new Date(session.now),
     seed: rootSeed,
-    value: generateRoot(node, options, rootSeed, index),
+    value: generateRoot(node, options, session, index),
   }
 }
 
@@ -65,11 +76,53 @@ export function generateManyResult(
   assertValidFixtureCount(count)
 
   const rootSeed = resolveRootSeed(options.seed)
+  const session = createGenerationSession(options, rootSeed)
   return {
+    now: new Date(session.now),
     seed: rootSeed,
     value: Array.from({ length: count }, (_, index) =>
-      generateRoot(node, options, rootSeed, index),
+      generateRoot(node, options, session, index),
     ),
+  }
+}
+
+interface GenerationSession {
+  readonly now: number
+  readonly nullables: NullablePolicy
+  readonly optionals: OptionalPolicy
+  readonly provider: PrimitiveProvider
+  readonly rootSeed: NormalizedSeed
+}
+
+function createGenerationSession(
+  options: GenerateOptions,
+  rootSeed: NormalizedSeed,
+): GenerationSession {
+  const now = options.now ?? new Date(DEFAULT_NOW)
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
+    throw new InvalidFixtureOptionsError("Fixture now must be a valid Date.")
+  }
+
+  const nullables = options.nullables ?? "value"
+  if (nullables !== "value" && nullables !== "null") {
+    throw new InvalidFixtureOptionsError(
+      'Fixture nullables must be either "value" or "null".',
+    )
+  }
+
+  const optionals = options.optionals ?? "present"
+  if (optionals !== "present" && optionals !== "omit") {
+    throw new InvalidFixtureOptionsError(
+      'Fixture optionals must be either "present" or "omit".',
+    )
+  }
+
+  return {
+    now: now.getTime(),
+    nullables,
+    optionals,
+    provider: options.provider,
+    rootSeed,
   }
 }
 
@@ -84,32 +137,38 @@ export function assertValidFixtureCount(count: number): void {
 function generateRoot(
   node: GenerationNode,
   options: GenerateOptions,
-  rootSeed: NormalizedSeed,
+  session: GenerationSession,
   index: number,
 ): unknown {
   const override = Object.hasOwn(options, "overrides")
     ? options.overrides
     : NO_OVERRIDE
 
-  return generateNode(node, options.provider, rootSeed, [index], override)
+  return generateNode(node, session, [index], override)
 }
 
 function generateNode(
   node: GenerationNode,
-  provider: PrimitiveProvider,
-  rootSeed: NormalizedSeed,
+  session: GenerationSession,
   path: readonly PathSegment[],
   override: RuntimeOverride,
 ): unknown {
   if (override !== NO_OVERRIDE) {
     if (typeof override === "function") {
-      const random = createRandom(deriveSeed(rootSeed, path, "override"))
+      const random = createRandom(
+        deriveSeed(session.rootSeed, path, "override"),
+      )
       return (override as FixtureCallback<unknown>)({
         index: path[0] as number,
+        now: new Date(session.now),
         path,
-        seed: rootSeed,
+        seed: session.rootSeed,
         random,
-        provider: bindProvider(provider, { path, random, rootSeed }),
+        provider: bindProvider(session.provider, {
+          path,
+          random,
+          rootSeed: session.rootSeed,
+        }),
       })
     }
 
@@ -118,7 +177,7 @@ function generateNode(
         return override
       }
 
-      return generateNode(node.inner, provider, rootSeed, path, override)
+      return generateNode(node.inner, session, path, override)
     }
 
     if (node.kind !== "object" || !isMergeableObject(override)) {
@@ -128,13 +187,13 @@ function generateNode(
 
   switch (node.kind) {
     case "string": {
-      const random = createRandom(deriveSeed(rootSeed, path))
+      const random = createRandom(deriveSeed(session.rootSeed, path))
       const context = {
         path,
         random,
-        rootSeed,
+        rootSeed: session.rootSeed,
       }
-      const boundProvider = bindProvider(provider, context)
+      const boundProvider = bindProvider(session.provider, context)
       const value =
         node.format === undefined
           ? boundProvider.string()
@@ -145,32 +204,32 @@ function generateNode(
         node,
         random.next(),
         path,
-        rootSeed,
+        session.rootSeed,
       )
     }
     case "number":
       return generateNumber(
         node,
-        createRandom(deriveSeed(rootSeed, path)).next(),
+        createRandom(deriveSeed(session.rootSeed, path)).next(),
         path,
-        rootSeed,
+        session.rootSeed,
       )
     case "boolean":
-      return createRandom(deriveSeed(rootSeed, path)).next() >= 0.5
+      return createRandom(deriveSeed(session.rootSeed, path)).next() >= 0.5
     case "date":
       return generateDate(
         node,
-        createRandom(deriveSeed(rootSeed, path)).next(),
+        createRandom(deriveSeed(session.rootSeed, path)).next(),
         path,
-        rootSeed,
+        session.rootSeed,
       )
     case "literal":
     case "enum":
       return selectValue(
         node.values,
-        createRandom(deriveSeed(rootSeed, path)).next(),
+        createRandom(deriveSeed(session.rootSeed, path)).next(),
         path,
-        rootSeed,
+        session.rootSeed,
       )
     case "array": {
       const minimum =
@@ -182,43 +241,61 @@ function generateNode(
           : Math.min(node.maxLength, usefulMaximum)
 
       if (minimum > maximum) {
-        throw impossibleRange("array length", minimum, maximum, path, rootSeed)
+        throw impossibleRange(
+          "array length",
+          minimum,
+          maximum,
+          path,
+          session.rootSeed,
+        )
       }
 
       const lengthRandom = createRandom(
-        deriveSeed(rootSeed, path, "array-length"),
+        deriveSeed(session.rootSeed, path, "array-length"),
       ).next()
       const length = randomInteger(minimum, maximum, lengthRandom)
 
       return Array.from({ length }, (_, index) =>
-        generateNode(
-          node.element,
-          provider,
-          rootSeed,
-          [...path, index],
-          NO_OVERRIDE,
-        ),
+        generateNode(node.element, session, [...path, index], NO_OVERRIDE),
       )
     }
     case "optional":
+      return session.optionals === "omit"
+        ? undefined
+        : generateNode(node.inner, session, path, NO_OVERRIDE)
     case "nullable":
-      return generateNode(node.inner, provider, rootSeed, path, NO_OVERRIDE)
-    case "object":
-      return Object.fromEntries(
-        node.properties.map(({ key, node: child }) => [
-          key,
-          generateNode(
-            child,
-            provider,
-            rootSeed,
-            [...path, key],
-            isMergeableObject(override) && Object.hasOwn(override, key)
-              ? override[key]
-              : NO_OVERRIDE,
-          ),
-        ]),
-      )
+      return session.nullables === "null"
+        ? null
+        : generateNode(node.inner, session, path, NO_OVERRIDE)
+    case "object": {
+      const value: Record<string, unknown> = {}
+
+      for (const { key, node: child } of node.properties) {
+        const childOverride =
+          isMergeableObject(override) && Object.hasOwn(override, key)
+            ? override[key]
+            : NO_OVERRIDE
+
+        if (
+          isOptional(child) &&
+          session.optionals === "omit" &&
+          childOverride === NO_OVERRIDE
+        ) {
+          continue
+        }
+
+        value[key] = generateNode(child, session, [...path, key], childOverride)
+      }
+
+      return value
+    }
   }
+}
+
+function isOptional(node: GenerationNode): boolean {
+  if (node.kind === "optional") return true
+  if (node.kind === "nullable") return isOptional(node.inner)
+  return false
 }
 
 function isMergeableObject(value: unknown): value is Record<string, unknown> {

@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
+- Updated: 2026-08-12
 
 ## Context
 
@@ -20,6 +21,10 @@ operation.
 Single generation uses item path index zero, matching the first result of
 `fixture.many(..., 1)`.
 
+Override and fixture-default callbacks do not receive sibling values. Cross-field
+dependencies require a separate explicit derivation mechanism rather than
+property-order or partial-object semantics.
+
 ## Consequences
 
 - Unrelated fields remain stable when a sibling is added or overridden.
@@ -28,6 +33,8 @@ Single generation uses item path index zero, matching the first result of
 - Path encoding and derivation become version-visible algorithms requiring
   golden tests.
 - A field whose own schema or generator changes may still change, as expected.
+- Cross-field consistency is more explicit but cannot be expressed by reading a
+  partially generated sibling object.
 - Exact values remain guaranteed only within a FixtureSmith version.
 
 ## Alternatives considered

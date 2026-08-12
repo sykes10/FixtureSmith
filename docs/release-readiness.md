@@ -31,7 +31,11 @@ workflow.
 - Faker implements the public primitive-provider contract, and a deterministic
   custom provider is covered by the facade suite.
 - Optional values are present and nullable values are non-null by default.
+- Explicit optional and nullable session policies remain schema-valid and yield
+  to overrides.
 - Arrays replace atomically in overrides; nested object overrides merge.
+- Reusable definitions infer defaults, variant names, derivation, and output
+  types from their Zod schema.
 - ESM exports and declarations pass Publint and Are the Types Wrong checks.
 - Packed artifacts contain runtime files, declarations, README, license, and no
   TypeScript build metadata.

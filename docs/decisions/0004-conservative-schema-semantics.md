@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
+- Updated: 2026-08-12
 
 ## Context
 
@@ -25,13 +26,20 @@ For v0.1:
 Users can explicitly override fields to `undefined` or `null` when their inferred
 types allow it.
 
+Generation sessions may also select `optionals: "omit"` or
+`nullables: "null"`. These policies remain schema-valid, apply session-wide,
+and yield to explicit overrides.
+
 ## Consequences
 
 - Default fixtures are populated and convenient for common tests.
 - Sparse and null-heavy states remain possible through explicit overrides.
 - FixtureSmith does not overclaim universal Zod support.
 - Some schemas require custom overrides or future handlers.
-- Boundary, sparse, invalid, and unusual-data modes remain clean later features.
+- Unusual-data modes remain a separate later feature.
+- Deliberately invalid data is not returned by fixture APIs. A separate
+  validation-case API may be considered for invalid and automatic boundary
+  cases if demand emerges.
 
 ## Alternatives considered
 

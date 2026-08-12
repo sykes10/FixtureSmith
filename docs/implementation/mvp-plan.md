@@ -63,7 +63,7 @@ Implement the smallest complete vertical slice:
 
 ```ts
 const schema = z.object({ name: z.string() })
-const value = fixture(schema, undefined, { seed: 42 })
+const value = fixture(schema, { seed: 42 })
 schema.parse(value)
 ```
 
@@ -256,7 +256,7 @@ Reject or defer implementation work involving:
 - scenarios or deterministic scenario time
 - relationships and graph generation
 - MSW, Storybook, Playwright, or ORM adapters
-- invalid, sparse, boundary, or Unicode modes
+- sparse or Unicode modes, or separate invalid/boundary case generation
 - a second schema adapter
 - schema caching or performance benchmarks without evidence
 - CLI, network services, AI, or GUI work

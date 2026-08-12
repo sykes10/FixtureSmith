@@ -4,4 +4,5 @@
 "@fixturesmith/zod": minor
 ---
 
-Release the first schema-first deterministic fixture generation API for Zod.
+Release schema-first deterministic generation and reusable fixture definitions
+for Zod.

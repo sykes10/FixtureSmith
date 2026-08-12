@@ -10,14 +10,12 @@ const Account = z.object({
   email: z.email(),
 })
 
-const accounts = fixture.many(
-  Account,
-  3,
-  {
+const accounts = fixture.many(Account, 3, {
+  overrides: {
     profile: { displayName: "Ada" },
     email: ({ index }) => `user-${index}@example.test`,
   },
-  { seed: 42 },
-)
+  seed: 42,
+})
 
 console.log(accounts)

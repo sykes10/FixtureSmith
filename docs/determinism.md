@@ -62,16 +62,24 @@ information rather than simple string joining.
 Single-value generation uses logical item index zero. Therefore:
 
 ```ts
-fixture(Schema, overrides, { seed })
+fixture(Schema, { overrides, seed })
 ```
 
 must equal:
 
 ```ts
-fixture.many(Schema, 1, overrides, { seed })[0]
+fixture.many(Schema, 1, { overrides, seed })[0]
 ```
 
 This equivalence is part of the API contract and must have a golden test.
+
+## Session time
+
+Every generation session resolves one `now` instant. Callbacks receive isolated
+`Date` objects representing that same instant, so mutating one callback's value
+cannot affect another callback. When omitted, `now` is the stable exported
+default `2000-01-01T00:00:00.000Z`; FixtureSmith never reads the wall clock
+implicitly.
 
 ## Object ordering
 

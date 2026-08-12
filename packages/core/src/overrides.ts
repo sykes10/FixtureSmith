@@ -4,6 +4,7 @@ import type { NormalizedSeed, RandomSource } from "./random.js"
 
 export interface FixtureCallbackContext {
   readonly index: number
+  readonly now: Date
   readonly path: readonly PathSegment[]
   readonly seed: NormalizedSeed
   readonly random: RandomSource

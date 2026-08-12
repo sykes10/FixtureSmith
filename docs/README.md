@@ -5,7 +5,7 @@ implemented and reviewed. When documents disagree, use this precedence:
 
 1. The PRD controls product goals and release scope.
 2. Accepted architecture decision records control deliberate technical choices.
-3. The engineering specifications control v0.1 behavior.
+3. The engineering specifications control implemented behavior.
 4. The implementation plan controls sequencing, not behavior.
 
 ## Read before implementation

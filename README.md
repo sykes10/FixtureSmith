@@ -16,9 +16,9 @@ typed, and reproducible application data.
 
 ## Status
 
-FixtureSmith v0.1 is implemented and preparing for its first package release. It
-turns supported Zod schemas into valid deterministic fixtures with typed
-overrides, collection generation, and Faker-backed semantic primitives.
+FixtureSmith is preparing for its first package release. It turns supported Zod
+schemas into valid deterministic fixtures and supports reusable definitions with
+typed defaults, variants, and derivation.
 
 ## Install
 
@@ -31,7 +31,7 @@ pnpm add -D @fixturesmith/zod zod
 ## Quick start
 
 ```ts
-import { fixture } from "@fixturesmith/zod"
+import { defineFixture, fixture } from "@fixturesmith/zod"
 import { z } from "zod"
 
 const User = z.object({
@@ -41,9 +41,21 @@ const User = z.object({
   age: z.number().int().min(18).max(100),
 })
 
-const user = fixture(User, undefined, { seed: 42 })
-const admin = fixture(User, { name: "Ada" }, { seed: 42 })
-const users = fixture.many(User, 20, undefined, { seed: 42 })
+const user = fixture(User, { seed: 42 })
+const admin = fixture(User, {
+  seed: 42,
+  overrides: { name: "Ada" },
+})
+const users = fixture.many(User, 20, { seed: 42 })
+
+const userDefinition = defineFixture(User, {
+  defaults: { age: 30 },
+  variants: {
+    senior: { age: 65 },
+  },
+})
+
+const senior = userDefinition.create({ seed: 42, variant: "senior" })
 ```
 
 Every generated result is parsed by its source schema. The same FixtureSmith
@@ -52,18 +64,20 @@ value.
 
 ### Callback overrides
 
-Callbacks receive deterministic scoped randomness, a bound provider, the field
-path, and the collection item index:
+Callbacks receive deterministic scoped randomness, a bound provider, the shared
+session time, the field path, and the collection item index:
 
 ```ts
 const users = fixture.many(
   User,
   3,
   {
-    email: ({ index, provider }) =>
-      `user-${index}-${provider.uuid()}@example.test`,
+    seed: "users",
+    overrides: {
+      email: ({ index, provider }) =>
+        `user-${index}-${provider.uuid()}@example.test`,
+    },
   },
-  { seed: "users" },
 )
 ```
 
@@ -117,7 +131,7 @@ Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), review
 the [schema support matrix](docs/schema-support.md), and include a changeset for
 published behavior or declaration changes.
 
-## v0.1 boundaries
+## Current boundaries
 
 Included:
 
@@ -128,13 +142,16 @@ Included:
 - Seeded deterministic generation
 - A provider abstraction and Faker-backed provider
 - Actionable errors containing schema paths
+- Reusable fixture definitions with defaults and one selected variant
+- Pure cross-field derivation
+- Stable session time and explicit optional/nullable policies
 
 Deferred:
 
-- Named fixtures and scenarios
+- Multi-fixture scenarios
 - Relations and graph generation
 - MSW, Storybook, Playwright, and database adapters
-- Invalid or boundary-data modes
+- Unusual-data modes
 - JSON Schema and OpenAPI
 - CLI, AI generation, and GUI tooling
 

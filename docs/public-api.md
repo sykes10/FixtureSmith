@@ -1,13 +1,13 @@
-# v0.1 public API contract
+# Public API contract
 
-This document defines the implemented v0.1 TypeScript API.
+This document defines the implemented TypeScript API.
 
 ## Imports
 
 Application code uses the Zod facade:
 
 ```ts
-import { fixture, FixtureError } from "@fixturesmith/zod"
+import { defineFixture, fixture, FixtureError } from "@fixturesmith/zod"
 ```
 
 Advanced consumers can import provider and engine contracts from their owning
@@ -19,8 +19,7 @@ adapter; avoid exposing implementation details prematurely.
 ```ts
 function fixture<S extends z.ZodType>(
   schema: S,
-  overrides?: FixtureOverrides<z.output<S>>,
-  options?: FixtureOptions,
+  options?: FixtureOptions<S>,
 ): z.output<S>
 ```
 
@@ -30,10 +29,12 @@ Examples:
 const user = fixture(UserSchema)
 
 const admin = fixture(UserSchema, {
-  role: "admin",
+  overrides: {
+    role: "admin",
+  },
 })
 
-const replayed = fixture(UserSchema, undefined, {
+const replayed = fixture(UserSchema, {
   seed: 1_234,
 })
 ```
@@ -52,15 +53,15 @@ with a typed runtime error.
 fixture.many<S extends z.ZodType>(
   schema: S,
   count: number,
-  overrides?: FixtureOverrides<z.output<S>>,
-  options?: FixtureOptions,
+  options?: FixtureOptions<S>,
 ): Array<z.output<S>>
 ```
 
 ```ts
 const users = fixture.many(UserSchema, 20, {
-  role: "member",
-}, {
+  overrides: {
+    role: "member",
+  },
   seed: 42,
 })
 ```
@@ -77,7 +78,11 @@ Rules:
 ## Options
 
 ```ts
-interface FixtureOptions {
+interface FixtureOptions<S extends z.ZodType> {
+  now?: Date
+  nullables?: "value" | "null"
+  optionals?: "present" | "omit"
+  overrides?: FixtureOverrides<z.output<S>>
   seed?: SeedInput
   provider?: PrimitiveProvider
 }
@@ -85,8 +90,14 @@ interface FixtureOptions {
 type SeedInput = number | string
 ```
 
-Seed normalization is defined in [Determinism](determinism.md). Additional modes
-such as boundary, sparse, invalid, and custom time are not part of v0.1.
+Seed normalization is defined in [Determinism](determinism.md). Every generation
+session uses one `now` instant; when omitted it defaults to the exported stable
+instant `2000-01-01T00:00:00.000Z`.
+
+Optional properties are present and nullable values are non-null by default.
+`optionals: "omit"` omits optional object properties, while
+`nullables: "null"` generates `null`. Explicit overrides take precedence over
+both policies.
 
 When `seed` is omitted, the facade generates a root seed using platform entropy.
 The result remains valid but is not expected to replay unless that chosen seed is
@@ -119,9 +130,11 @@ instantiation depth.
 
 ```ts
 const user = fixture(UserSchema, {
-  role: "admin",
-  profile: {
-    displayName: "Ada",
+  overrides: {
+    role: "admin",
+    profile: {
+      displayName: "Ada",
+    },
   },
 })
 ```
@@ -132,9 +145,12 @@ Only `profile.displayName` is supplied. Other `profile` fields are generated.
 
 ```ts
 const users = fixture.many(UserSchema, 3, {
-  email: ({ index, provider }) =>
-    `user-${index}-${provider.uuid()}@example.test`,
-}, { seed: 42 })
+  overrides: {
+    email: ({ index, provider }) =>
+      `user-${index}-${provider.uuid()}@example.test`,
+  },
+  seed: 42,
+})
 ```
 
 The callback API exposes a narrow deterministic context:
@@ -142,6 +158,7 @@ The callback API exposes a narrow deterministic context:
 ```ts
 interface FixtureCallbackContext {
   readonly index: number
+  readonly now: Date
   readonly path: readonly (string | number)[]
   readonly seed: NormalizedSeed
   readonly random: RandomSource
@@ -150,18 +167,58 @@ interface FixtureCallbackContext {
 ```
 
 `provider` is bound to the current scoped random source, so callbacks do not pass
-context manually. Sibling values are deliberately absent in v0.1 because they
-would create field-order and partial-object semantics.
+context manually. Sibling values are deliberately absent because they would
+create field-order and partial-object semantics. Future cross-field dependencies
+will use a separate explicit derivation mechanism.
 
 ### Override precedence
 
-v0.1 has two applicable layers:
+Immediate generation has two applicable layers:
 
 1. Per-call override
 2. Schema-derived or provider-generated value
 
-The fuller precedence chain in the PRD becomes relevant with `defineFixture()`
-and scenarios in later releases.
+## Reusable fixture definitions
+
+`defineFixture()` creates an immutable definition bound to one schema:
+
+```ts
+const user = defineFixture(UserSchema, {
+  defaults: {
+    role: "member",
+  },
+  variants: {
+    admin: { role: "admin" },
+  },
+})
+
+const member = user.create({ seed: 42 })
+const admin = user.create({ seed: 42, variant: "admin" })
+const admins = user.many(3, { seed: 42, variant: "admin" })
+```
+
+Defaults and variants accept the same recursive static values and callbacks as
+per-call overrides. Creation selects zero or one statically known variant.
+Per-call overrides have higher precedence than the selected variant, which has
+higher precedence than defaults.
+
+An optional derivation calculates cross-field values from a complete provisional
+fixture:
+
+```ts
+const booking = defineFixture(BookingSchema, {
+  derive: ({ value, now, index }) => ({
+    endsAt: addHours(value.startsAt, 2),
+    label: `${index}-${now.toISOString()}`,
+  }),
+})
+```
+
+Each definition has at most one atomic derivation. It receives a readonly value,
+the collection index, and session time, but no random source or provider. It
+runs after defaults, the selected variant, and overrides. Explicitly overridden
+target fields remain authoritative, and the completed fixture is validated by
+its source schema.
 
 ### Validation
 
@@ -172,7 +229,7 @@ FixtureValidationError with path and seed context.
 ## Provider customization
 
 ```ts
-const user = fixture(UserSchema, undefined, {
+const user = fixture(UserSchema, {
   seed: "checkout-empty-state",
   provider: myProvider,
 })
@@ -191,8 +248,8 @@ fixture(UserSchema).many(20)
 ```
 
 `fixture(UserSchema)` returns the generated value, so it cannot also be a
-builder without proxies or false output types. Fluent reusable behavior belongs
-on the later `defineFixture()` API.
+builder without proxies or false output types. Reusable behavior belongs on
+`defineFixture()`.
 
 ## Compatibility promises
 

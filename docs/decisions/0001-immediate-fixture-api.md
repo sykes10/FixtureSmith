@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
+- Updated: 2026-08-12
 
 ## Context
 
@@ -12,9 +13,10 @@ one-line generation should remain excellent.
 
 ## Decision
 
-In v0.1, `fixture(schema, overrides?, options?)` immediately returns the parsed
-schema output. Collection generation is `fixture.many(schema, count, overrides?,
-options?)`. Seed and provider selection are options.
+In v0.1, `fixture(schema, options?)` immediately returns the parsed schema
+output. Collection generation is `fixture.many(schema, count, options?)`.
+Overrides, seed, and provider selection are named properties of the options
+object.
 
 Fluent reusable behavior is deferred to `defineFixture()` in v0.2.
 
@@ -23,6 +25,8 @@ Fluent reusable behavior is deferred to `defineFixture()` in v0.2.
 - Basic use is one direct expression.
 - Results have honest Zod output types with no wrapper or unwrapping step.
 - Seeded generation is slightly more verbose than `.seed(42)`.
+- Calls never need an `undefined` placeholder to reach seed or provider options.
+- Override-only calls use the explicit `{ overrides: { ... } }` shape.
 - `many()` repeats the schema argument, but remains discoverable under `fixture`.
 - The implementation avoids proxies and type/runtime mismatches.
 
