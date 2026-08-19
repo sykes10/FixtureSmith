@@ -37,7 +37,7 @@
     "package:check": "publint"
   },
   "dependencies": {
-    "@faker-js/faker": "10.5.0",
+    "@faker-js/faker": "10.6.0",
     "@fixturesmith/core": "workspace:*"
   },
   "publishConfig": {
